@@ -1,13 +1,33 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 
+// Interface for our visualization settings
+interface VisualizationSettings {
+  style: string;
+  colorTheme: string;
+  customColorPrimary: string;
+  customColorSecondary: string;
+  padding: number;
+  animationEnabled: boolean;
+}
+
 export class CodeArtViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'visual-code-art.canvasView';
   private _view?: vscode.WebviewView;
 
   constructor(
     private readonly _extensionUri: vscode.Uri,
-  ) {}
+  ) {
+    // Listen for configuration changes
+    vscode.workspace.onDidChangeConfiguration(e => {
+      if (e.affectsConfiguration('visualCodeArt')) {
+        // If we have an active view, update it with the new settings
+        if (this._view) {
+          this._updateSettings();
+        }
+      }
+    });
+  }
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
@@ -25,6 +45,9 @@ export class CodeArtViewProvider implements vscode.WebviewViewProvider {
 
     // Set up event listeners for file changes
     this._setupFileChangeListener(webviewView);
+    
+    // Send initial settings to the webview
+    this._updateSettings();
     
     // Process initial active editor if present
     if (vscode.window.activeTextEditor) {
@@ -60,6 +83,29 @@ export class CodeArtViewProvider implements vscode.WebviewViewProvider {
       filename: path.basename(document.fileName)
     });
   }
+  
+  private _updateSettings() {
+    if (!this._view) {
+      return;
+    }
+    
+    // Get settings from configuration
+    const config = vscode.workspace.getConfiguration('visualCodeArt');
+    const settings: VisualizationSettings = {
+      style: config.get('visualization.style', 'squares'),
+      colorTheme: config.get('visualization.colorTheme', 'rainbow'),
+      customColorPrimary: config.get('visualization.customColorPrimary', '#FF0000'),
+      customColorSecondary: config.get('visualization.customColorSecondary', '#0000FF'),
+      padding: config.get('layout.padding', 10),
+      animationEnabled: config.get('animation.enabled', true),
+    };
+    
+    // Send settings to the webview
+    this._view.webview.postMessage({
+      type: 'settings',
+      settings: settings
+    });
+  }
 
   private _extractFunctions(document: vscode.TextDocument): Array<{name: string, size: number}> {
     const text = document.getText();
@@ -82,8 +128,8 @@ export class CodeArtViewProvider implements vscode.WebviewViewProvider {
       let endPos = startPos;
       
       for (let i = text.indexOf('{', startPos) + 1; i < text.length && openBraces > 0; i++) {
-        if (text[i] === '{') openBraces++;
-        if (text[i] === '}') openBraces--;
+        if (text[i] === '{') { openBraces++; }
+        if (text[i] === '}') { openBraces--; }
         if (openBraces === 0) {
           endPos = i;
           break;
@@ -141,6 +187,14 @@ export class CodeArtViewProvider implements vscode.WebviewViewProvider {
         // Store state
         let functions = [];
         let filename = '';
+        let settings = {
+          style: 'squares',
+          colorTheme: 'rainbow',
+          customColorPrimary: '#FF0000',
+          customColorSecondary: '#0000FF',
+          padding: 10,
+          animationEnabled: true
+        };
         
         // p5.js sketch
         function setup() {
@@ -160,7 +214,7 @@ export class CodeArtViewProvider implements vscode.WebviewViewProvider {
         }
         
         function drawFunctions() {
-          if (functions.length === 0) return;
+          if (functions.length === 0) { return; }
           
           // Find max function size for normalization
           const maxSize = Math.max(...functions.map(f => f.size));
@@ -173,7 +227,7 @@ export class CodeArtViewProvider implements vscode.WebviewViewProvider {
           // Calculate cell size
           const cellWidth = width / numCols;
           const cellHeight = height / numRows;
-          const padding = 10;
+          const padding = settings.padding;
           
           // Draw squares for each function
           functions.forEach((func, i) => {
@@ -184,15 +238,61 @@ export class CodeArtViewProvider implements vscode.WebviewViewProvider {
             const y = row * cellHeight + padding;
             const size = map(func.size, 1, maxSize, 20, Math.min(cellWidth, cellHeight) - padding * 2);
             
-            // Generate a consistent hue based on function name
             const hue = hashString(func.name) % 360;
             
-            // Draw the square
-            fill(hue, 60, 90);
-            stroke(hue, 80, 70);
-            strokeWeight(2);
-            rectMode(CENTER);
-            rect(x + cellWidth/2, y + cellHeight/2, size, size);
+          // Apply colors based on settings
+          let fillColor, strokeColor;
+          switch(settings.colorTheme) {
+            case 'monoBlue':
+              fillColor = color(210, map(func.size, 1, maxSize, 30, 90), 80);
+              strokeColor = color(210, 80, 60);
+              break;
+            case 'monoGreen':
+              fillColor = color(120, map(func.size, 1, maxSize, 30, 90), 80);
+              strokeColor = color(120, 80, 60);
+              break;
+            case 'monoPurple':
+              fillColor = color(270, map(func.size, 1, maxSize, 30, 90), 80);
+              strokeColor = color(270, 80, 60);
+              break;
+            case 'custom':
+              // Use custom colors with interpolation based on function size
+              let c1 = color(settings.customColorPrimary);
+              let c2 = color(settings.customColorSecondary);
+              let amt = map(func.size, 1, maxSize, 0, 1);
+              fillColor = lerpColor(c1, c2, amt);
+              strokeColor = lerpColor(c2, c1, amt);
+              break;
+            case 'rainbow':
+            default:
+              fillColor = color(hue, 60, 90);
+              strokeColor = color(hue, 80, 70);
+          }
+            
+          // Apply styles based on settings
+          fill(fillColor);
+          stroke(strokeColor);
+          strokeWeight(2);
+          
+          // Draw the shape based on the style setting
+          switch(settings.style) {
+            case 'circles':
+              ellipseMode(CENTER);
+              ellipse(x + cellWidth/2, y + cellHeight/2, size, size);
+              break;
+            case 'triangles':
+              const halfSize = size/2;
+              triangle(
+                x + cellWidth/2, y + cellHeight/2 - halfSize, // top
+                x + cellWidth/2 - halfSize, y + cellHeight/2 + halfSize, // bottom left
+                x + cellWidth/2 + halfSize, y + cellHeight/2 + halfSize  // bottom right
+              );
+              break;
+            case 'squares':
+            default:
+              rectMode(CENTER);
+              rect(x + cellWidth/2, y + cellHeight/2, size, size);
+          }
             
             // Add text label
             fill(0, 0, 0);
@@ -223,8 +323,21 @@ export class CodeArtViewProvider implements vscode.WebviewViewProvider {
           const message = event.data;
           
           if (message.type === 'update') {
+            const oldFunctions = functions;
             functions = message.data;
             filename = message.filename;
+            
+            // Apply animation if enabled
+            if (settings.animationEnabled && oldFunctions.length > 0) {
+              // We could add animation effects here in the future
+              // For now just a simple flash effect
+              background(255, 255, 255, 100);
+              setTimeout(() => background(220, 10, 20), 200);
+            }
+          } else if (message.type === 'settings') {
+            settings = message.settings;
+            // Redraw with new settings
+            redraw();
           }
         });
       </script>

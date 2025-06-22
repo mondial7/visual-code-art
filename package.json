@@ -18,6 +18,43 @@
         "title": "Hello World"
       }
     ],
+    "configuration": {
+      "title": "Visual Code Art",
+      "properties": {
+        "visualCodeArt.visualization.style": {
+          "type": "string",
+          "default": "squares",
+          "enum": ["squares", "circles", "triangles"],
+          "description": "The shape style to use for visualization"
+        },
+        "visualCodeArt.visualization.colorTheme": {
+          "type": "string",
+          "default": "rainbow",
+          "enum": ["rainbow", "monoBlue", "monoGreen", "monoPurple", "custom"],
+          "description": "Color theme for visualizations"
+        },
+        "visualCodeArt.visualization.customColorPrimary": {
+          "type": "string",
+          "default": "#FF0000",
+          "description": "Primary color for custom theme (hex format, e.g. #FF0000)"
+        },
+        "visualCodeArt.visualization.customColorSecondary": {
+          "type": "string",
+          "default": "#0000FF",
+          "description": "Secondary color for custom theme (hex format, e.g. #0000FF)"
+        },
+        "visualCodeArt.layout.padding": {
+          "type": "number",
+          "default": 10,
+          "description": "Padding between elements in the visualization"
+        },
+        "visualCodeArt.animation.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable animation effects when code changes"
+        }
+      }
+    },
     "viewsContainers": {
       "activitybar": [
         {
