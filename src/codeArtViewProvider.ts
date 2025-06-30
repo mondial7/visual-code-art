@@ -47,6 +47,9 @@ export class CodeArtViewProvider implements vscode.WebviewViewProvider {
     // Set up event listeners for file changes
     this._setupFileChangeListener(webviewView);
     
+    // Set up message handling from webview
+    this._setupMessageHandling(webviewView);
+    
     // Send initial settings to the webview
     this._updateSettings();
     
@@ -69,6 +72,30 @@ export class CodeArtViewProvider implements vscode.WebviewViewProvider {
     vscode.window.onDidChangeActiveTextEditor(editor => {
       if (editor) {
         this._processActiveFile(editor.document, webviewView);
+      }
+    });
+  }
+
+  private _setupMessageHandling(webviewView: vscode.WebviewView) {
+    // Listen for messages from the webview
+    webviewView.webview.onDidReceiveMessage(async (message) => {
+      switch (message.type) {
+        case 'settingsChanged':
+          try {
+            // Update settings in workspace configuration
+            await this._settingsService.updateSettings(message.settings);
+            
+            // Send updated settings back to webview to confirm
+            this._updateSettings();
+            
+            // Show success message
+            vscode.window.showInformationMessage('Visual Code Art settings updated!');
+          } catch (error) {
+            vscode.window.showErrorMessage(`Failed to update settings: ${error}`);
+          }
+          break;
+        default:
+          console.warn('Unknown message type from webview:', message.type);
       }
     });
   }
