@@ -24,7 +24,8 @@ const esbuildProblemMatcherPlugin = {
 };
 
 async function main() {
-	const ctx = await esbuild.context({
+	// Build extension
+	const extensionCtx = await esbuild.context({
 		entryPoints: [
 			'src/extension.ts'
 		],
@@ -42,11 +43,32 @@ async function main() {
 			esbuildProblemMatcherPlugin,
 		],
 	});
+
+	// Build sketch for webview
+	const sketchCtx = await esbuild.context({
+		entryPoints: [
+			'src/sketch/codeArtSketch.ts'
+		],
+		bundle: true,
+		format: 'iife', // Immediately Invoked Function Expression for browser
+		minify: production,
+		sourcemap: !production,
+		sourcesContent: false,
+		platform: 'browser',
+		outfile: 'media/codeArtSketch.js',
+		logLevel: 'silent',
+		plugins: [
+			esbuildProblemMatcherPlugin,
+		],
+	});
 	if (watch) {
-		await ctx.watch();
+		await extensionCtx.watch();
+		await sketchCtx.watch();
 	} else {
-		await ctx.rebuild();
-		await ctx.dispose();
+		await extensionCtx.rebuild();
+		await sketchCtx.rebuild();
+		await extensionCtx.dispose();
+		await sketchCtx.dispose();
 	}
 }
 
