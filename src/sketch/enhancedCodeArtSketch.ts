@@ -53,10 +53,7 @@ interface EnhancedFunctionData {
 
 interface VisualizationSettings {
   style: 'particles' | 'chaos' | 'flow' | 'classic';
-  colorTheme: 'rainbow' | 'intensity' | 'monoBlue' | 'monoGreen' | 'monoPurple' | 'custom';
-  customColorPrimary: string;
-  customColorSecondary: string;
-  padding: number;
+  colorTheme: 'rainbow';
   animationEnabled: boolean;
   particleIntensity: number; // 0-1 multiplier for particle effects
 }
@@ -327,10 +324,7 @@ let functions: EnhancedFunctionData[] = [];
 let filename: string = '';
 let settings: VisualizationSettings = {
   style: 'particles',
-  colorTheme: 'intensity',
-  customColorPrimary: '#FF0000',
-  customColorSecondary: '#0000FF',
-  padding: 10,
+  colorTheme: 'rainbow',
   animationEnabled: true,
   particleIntensity: 1.0
 };
@@ -465,7 +459,7 @@ function drawClassicShapes(): void {
   const numRows = Math.ceil(functions.length / numCols);
   const cellWidth = width / numCols;
   const cellHeight = height / numRows;
-  const padding = settings.padding;
+  const padding = 10; // Fixed padding value
   
   functions.forEach((func, i) => {
     const row = Math.floor(i / numCols);
@@ -482,15 +476,9 @@ function drawClassicShapes(): void {
 function drawClassicShape(x: number, y: number, size: number, hue: number, func: EnhancedFunctionData): void {
   const complexity = func.complexity.overallComplexity;
   
-  if (settings.colorTheme === 'intensity') {
-    const saturation = 60 + complexity * 40;
-    const brightness = 70 + complexity * 30;
-    fill(color(hue, saturation, brightness));
-    stroke(color(hue, saturation + 20, brightness - 20));
-  } else {
-    fill(color(hue, 60, 90));
-    stroke(color(hue, 80, 70));
-  }
+  // Always use rainbow colors - vibrant hue-based colors
+  fill(color(hue, 80, 90));
+  stroke(color(hue, 90, 70));
   
   strokeWeight(1 + complexity * 3);
   
@@ -560,6 +548,7 @@ function updateStatisticsPanel(data: EnhancedFunctionData[], filename: string): 
   const functionCount = data.length;
   let avgComplexity = '0.00';
   let maxComplexity = 'None';
+  let mostComplexIntensity = 'low';
   
   if (functionCount > 0) {
     const totalComplexity = data.reduce((sum, func) => sum + func.complexity.overallComplexity, 0);
@@ -569,9 +558,10 @@ function updateStatisticsPanel(data: EnhancedFunctionData[], filename: string): 
       func.complexity.overallComplexity > max.complexity.overallComplexity ? func : max
     );
     maxComplexity = mostComplex.name + ' (' + mostComplex.complexity.intensityLevel + ')';
+    mostComplexIntensity = mostComplex.complexity.intensityLevel;
   }
   
-  // Update DOM elements
+  // Update DOM elements with improved styling
   const fileElement = document.getElementById('file-name');
   const countElement = document.getElementById('function-count');
   const avgElement = document.getElementById('avg-complexity');
@@ -580,9 +570,18 @@ function updateStatisticsPanel(data: EnhancedFunctionData[], filename: string): 
   if (fileElement) fileElement.textContent = filename || 'No file selected';
   if (countElement) countElement.textContent = functionCount.toString();
   if (avgElement) avgElement.textContent = avgComplexity;
-  if (maxElement) maxElement.textContent = maxComplexity;
   
-  console.log('[Sketch] Statistics updated:', {filename, functionCount, avgComplexity, maxComplexity});
+  if (maxElement) {
+    maxElement.textContent = maxComplexity;
+    // Remove existing complexity classes
+    maxElement.className = maxElement.className.replace(/complexity-\w+/g, '');
+    // Add appropriate complexity class for color coding
+    if (maxComplexity !== 'None') {
+      maxElement.classList.add(`complexity-${mostComplexIntensity}`);
+    }
+  }
+  
+  console.log('[Sketch] Statistics updated:', {filename, functionCount, avgComplexity, maxComplexity, mostComplexIntensity});
 }
 
 function handleSettingsUpdate(newSettings: VisualizationSettings): void {

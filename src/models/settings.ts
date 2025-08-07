@@ -1,19 +1,13 @@
 export interface VisualizationSettings {
   style: 'particles' | 'chaos' | 'flow' | 'classic';
-  colorTheme: 'rainbow' | 'intensity' | 'monoBlue' | 'monoGreen' | 'monoPurple' | 'custom';
-  customColorPrimary: string;
-  customColorSecondary: string;
-  padding: number;
+  colorTheme: 'rainbow';
   animationEnabled: boolean;
-  particleIntensity: number; // 0-1 multiplier for particle effects
+  particleIntensity: number;
 }
 
 export const defaultSettings: VisualizationSettings = {
   style: 'particles',
-  colorTheme: 'intensity',
-  customColorPrimary: '#FF0000',
-  customColorSecondary: '#0000FF',
-  padding: 10,
+  colorTheme: 'rainbow',
   animationEnabled: true,
   particleIntensity: 1.0
 };

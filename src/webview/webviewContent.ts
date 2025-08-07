@@ -45,35 +45,68 @@ export class WebviewContentProvider {
           bottom: 0;
           left: 0;
           right: 0;
-          background: rgba(0, 0, 0, 0.8);
+          background: rgba(0, 0, 0, 0.85);
           color: white;
-          padding: 8px 16px;
-          font-size: calc(var(--vscode-font-size) * 0.9);
-          border-top: 1px solid rgba(255, 255, 255, 0.1);
-          backdrop-filter: blur(4px);
+          padding: 12px 20px;
+          font-size: calc(var(--vscode-font-size) * 0.85);
+          border-top: 1px solid rgba(255, 255, 255, 0.15);
+          backdrop-filter: blur(6px);
           z-index: 100;
+          box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3);
         }
         
         .stats-row {
-          display: flex;
-          justify-content: space-between;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+          margin: 4px 0;
           align-items: center;
-          margin: 2px 0;
+        }
+        
+        .stats-row:first-child {
+          margin-bottom: 8px;
         }
         
         .stat-item {
           display: flex;
-          align-items: center;
-          gap: 8px;
+          flex-direction: column;
+          gap: 2px;
+          min-width: 0; /* Allows text truncation */
         }
         
         .stat-label {
           font-weight: 500;
-          opacity: 0.8;
+          opacity: 0.7;
+          font-size: calc(var(--vscode-font-size) * 0.75);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: rgba(255, 255, 255, 0.6);
         }
         
         .stat-value {
           font-weight: bold;
+          color: #ffffff;
+          font-size: calc(var(--vscode-font-size) * 0.9);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        
+        .complexity-high {
+          color: #ff6b6b;
+        }
+        
+        .complexity-medium {
+          color: #ffd93d;
+        }
+        
+        .complexity-low {
+          color: #6bcf7f;
+        }
+        
+        .complexity-extreme {
+          color: #ff4757;
+          font-weight: 900;
         }
         
         canvas {

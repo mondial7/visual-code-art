@@ -18,62 +18,6 @@
         "title": "Hello World"
       }
     ],
-    "configuration": {
-      "title": "Visual Code Art",
-      "properties": {
-        "visualCodeArt.visualization.style": {
-          "type": "string",
-          "default": "particles",
-          "enum": [
-            "particles",
-            "chaos",
-            "flow",
-            "classic"
-          ],
-          "description": "The visualization style to use for representing code complexity"
-        },
-        "visualCodeArt.visualization.colorTheme": {
-          "type": "string",
-          "default": "intensity",
-          "enum": [
-            "rainbow",
-            "intensity",
-            "monoBlue",
-            "monoGreen",
-            "monoPurple",
-            "custom"
-          ],
-          "description": "Color theme for visualizations"
-        },
-        "visualCodeArt.visualization.particleIntensity": {
-          "type": "number",
-          "default": 1.0,
-          "minimum": 0.0,
-          "maximum": 2.0,
-          "description": "Particle intensity multiplier (0.0 to 2.0)"
-        },
-        "visualCodeArt.visualization.customColorPrimary": {
-          "type": "string",
-          "default": "#FF0000",
-          "description": "Primary color for custom theme (hex format, e.g. #FF0000)"
-        },
-        "visualCodeArt.visualization.customColorSecondary": {
-          "type": "string",
-          "default": "#0000FF",
-          "description": "Secondary color for custom theme (hex format, e.g. #0000FF)"
-        },
-        "visualCodeArt.layout.padding": {
-          "type": "number",
-          "default": 10,
-          "description": "Padding between elements in the visualization"
-        },
-        "visualCodeArt.animation.enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable animation effects when code changes"
-        }
-      }
-    },
     "viewsContainers": {
       "activitybar": [
         {

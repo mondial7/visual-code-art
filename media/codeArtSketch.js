@@ -170,10 +170,7 @@
   var filename = "";
   var settings = {
     style: "particles",
-    colorTheme: "intensity",
-    customColorPrimary: "#FF0000",
-    customColorSecondary: "#0000FF",
-    padding: 10,
+    colorTheme: "rainbow",
     animationEnabled: true,
     particleIntensity: 1
   };
@@ -278,7 +275,7 @@
     const numRows = Math.ceil(functions.length / numCols);
     const cellWidth = width / numCols;
     const cellHeight = height / numRows;
-    const padding = settings.padding;
+    const padding = 10;
     functions.forEach((func, i) => {
       const row = Math.floor(i / numCols);
       const col = i % numCols;
@@ -291,15 +288,8 @@
   }
   function drawClassicShape(x, y, size, hue, func) {
     const complexity = func.complexity.overallComplexity;
-    if (settings.colorTheme === "intensity") {
-      const saturation = 60 + complexity * 40;
-      const brightness = 70 + complexity * 30;
-      fill(color(hue, saturation, brightness));
-      stroke(color(hue, saturation + 20, brightness - 20));
-    } else {
-      fill(color(hue, 60, 90));
-      stroke(color(hue, 80, 70));
-    }
+    fill(color(hue, 80, 90));
+    stroke(color(hue, 90, 70));
     strokeWeight(1 + complexity * 3);
     ellipseMode("CENTER");
     ellipse(x, y, size, size);
@@ -349,6 +339,7 @@
     const functionCount = data.length;
     let avgComplexity = "0.00";
     let maxComplexity = "None";
+    let mostComplexIntensity = "low";
     if (functionCount > 0) {
       const totalComplexity = data.reduce((sum, func) => sum + func.complexity.overallComplexity, 0);
       avgComplexity = (totalComplexity / functionCount).toFixed(2);
@@ -356,6 +347,7 @@
         (max, func) => func.complexity.overallComplexity > max.complexity.overallComplexity ? func : max
       );
       maxComplexity = mostComplex.name + " (" + mostComplex.complexity.intensityLevel + ")";
+      mostComplexIntensity = mostComplex.complexity.intensityLevel;
     }
     const fileElement = document.getElementById("file-name");
     const countElement = document.getElementById("function-count");
@@ -364,8 +356,14 @@
     if (fileElement) fileElement.textContent = filename2 || "No file selected";
     if (countElement) countElement.textContent = functionCount.toString();
     if (avgElement) avgElement.textContent = avgComplexity;
-    if (maxElement) maxElement.textContent = maxComplexity;
-    console.log("[Sketch] Statistics updated:", { filename: filename2, functionCount, avgComplexity, maxComplexity });
+    if (maxElement) {
+      maxElement.textContent = maxComplexity;
+      maxElement.className = maxElement.className.replace(/complexity-\w+/g, "");
+      if (maxComplexity !== "None") {
+        maxElement.classList.add(`complexity-${mostComplexIntensity}`);
+      }
+    }
+    console.log("[Sketch] Statistics updated:", { filename: filename2, functionCount, avgComplexity, maxComplexity, mostComplexIntensity });
   }
   function handleSettingsUpdate(newSettings) {
     const styleChanged = settings.style !== newSettings.style;
