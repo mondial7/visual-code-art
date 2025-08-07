@@ -52,11 +52,12 @@ interface EnhancedFunctionData {
 }
 
 interface VisualizationSettings {
-  style: 'particles' | 'chaos' | 'flow' | 'classic';
   colorTheme: 'rainbow';
   animationEnabled: boolean;
   particleIntensity: number; // 0-1 multiplier for particle effects
 }
+
+type AutoVisualizationStyle = 'particles' | 'chaos' | 'flow';
 
 interface ParticleSystemConfig {
   maxParticles: number;
@@ -323,12 +324,12 @@ const vscode: VsCodeApi = acquireVsCodeApi();
 let functions: EnhancedFunctionData[] = [];
 let filename: string = '';
 let settings: VisualizationSettings = {
-  style: 'particles',
   colorTheme: 'rainbow',
   animationEnabled: true,
   particleIntensity: 1.0
 };
 
+let currentStyle: AutoVisualizationStyle = 'particles';
 let functionVisualizations: FunctionVisualization[] = [];
 let lastUpdateTime: number = 0;
 
@@ -345,17 +346,50 @@ function draw(): void {
   // Dark background for better visibility
   background(0, 0, 8); // Very dark gray, almost black
   
-  if (settings.animationEnabled && (settings.style === 'particles' || settings.style === 'chaos' || settings.style === 'flow')) {
+  if (settings.animationEnabled) {
     updateParticleVisualizations();
     renderParticleVisualizations();
-  } else {
-    drawClassicShapes();
   }
 }
 
 function windowResized(): void {
   resizeCanvas(window.innerWidth, window.innerHeight);
   updateFunctionPositions();
+}
+
+// ===== AUTOMATIC STYLE SELECTION =====
+
+function determineAutoStyle(functions: EnhancedFunctionData[]): AutoVisualizationStyle {
+  if (functions.length === 0) return 'flow';
+  
+  // Calculate complexity distribution
+  const complexityCounts = {
+    extreme: 0,
+    high: 0,
+    medium: 0,
+    low: 0
+  };
+  
+  functions.forEach(func => {
+    complexityCounts[func.complexity.intensityLevel]++;
+  });
+  
+  const totalFunctions = functions.length;
+  const extremePercentage = complexityCounts.extreme / totalFunctions;
+  const highPercentage = complexityCounts.high / totalFunctions;
+  const combinedHighComplexity = extremePercentage + highPercentage;
+  
+  // Style selection based on complexity distribution
+  if (extremePercentage > 0.3 || combinedHighComplexity > 0.6) {
+    // High concentration of extreme complexity or lots of high/extreme complexity
+    return 'chaos';
+  } else if (combinedHighComplexity > 0.2 || complexityCounts.medium > totalFunctions * 0.4) {
+    // Moderate complexity present
+    return 'particles';
+  } else {
+    // Mostly low complexity functions
+    return 'flow';
+  }
 }
 
 // ===== VISUALIZATION SYSTEM =====
@@ -392,10 +426,10 @@ function initializeVisualizations(): void {
 function generateParticleConfig(complexity: ComplexityMetrics): ParticleSystemConfig {
   const intensity = complexity.overallComplexity;
   
-  // Adjust particle behavior based on style
+  // Adjust particle behavior based on current auto-selected style
   let styleMultipliers = { chaos: 1, particles: 25, speed: 3, trails: 15, lifetime: 3000 };
   
-  switch (settings.style) {
+  switch (currentStyle) {
     case 'chaos':
       styleMultipliers = { chaos: 3, particles: 40, speed: 5, trails: 25, lifetime: 2000 };
       break;
@@ -452,57 +486,6 @@ function renderParticleVisualizations(): void {
   });
 }
 
-function drawClassicShapes(): void {
-  if (functions.length === 0) return;
-  
-  const numCols = Math.ceil(Math.sqrt(functions.length));
-  const numRows = Math.ceil(functions.length / numCols);
-  const cellWidth = width / numCols;
-  const cellHeight = height / numRows;
-  const padding = 10; // Fixed padding value
-  
-  functions.forEach((func, i) => {
-    const row = Math.floor(i / numCols);
-    const col = i % numCols;
-    const x = col * cellWidth + cellWidth/2;
-    const y = row * cellHeight + cellHeight/2;
-    const size = map(func.complexity.overallComplexity, 0, 1, 30, Math.min(cellWidth, cellHeight) - padding * 2);
-    const hue = hashString(func.name) % 360;
-    
-    drawClassicShape(x, y, size, hue, func);
-  });
-}
-
-function drawClassicShape(x: number, y: number, size: number, hue: number, func: EnhancedFunctionData): void {
-  const complexity = func.complexity.overallComplexity;
-  
-  // Always use rainbow colors - vibrant hue-based colors
-  fill(color(hue, 80, 90));
-  stroke(color(hue, 90, 70));
-  
-  strokeWeight(1 + complexity * 3);
-  
-  ellipseMode('CENTER');
-  ellipse(x, y, size, size);
-  
-  // Add intensity indicator
-  const intensityColors = {
-    'low': color(120, 60, 80),
-    'medium': color(60, 80, 80),
-    'high': color(30, 90, 80),
-    'extreme': color(0, 100, 90)
-  };
-  
-  fill(intensityColors[func.complexity.intensityLevel]);
-  noStroke();
-  ellipse(x, y, size * 0.3, size * 0.3);
-  
-  // Function name
-  fill(color(0, 0, 0));
-  textAlign('CENTER', 'CENTER');
-  textSize(10);
-  text(func.name, x, y + size/2 + 15);
-}
 
 function updateFunctionPositions(): void {
   if (functionVisualizations.length === 0) return;
@@ -536,7 +519,13 @@ function handleDataUpdate(data: EnhancedFunctionData[], newFilename: string): vo
   functions = data;
   filename = newFilename;
   
-  if (settings.animationEnabled && (settings.style === 'particles' || settings.style === 'chaos' || settings.style === 'flow')) {
+  // Automatically determine the visualization style based on complexity
+  const previousStyle = currentStyle;
+  currentStyle = determineAutoStyle(data);
+  
+  console.log(`[Sketch] Auto-selected style: ${currentStyle} (previous: ${previousStyle}) for ${data.length} functions`);
+  
+  if (settings.animationEnabled) {
     initializeVisualizations();
   }
   
@@ -585,20 +574,13 @@ function updateStatisticsPanel(data: EnhancedFunctionData[], filename: string): 
 }
 
 function handleSettingsUpdate(newSettings: VisualizationSettings): void {
-  const styleChanged = settings.style !== newSettings.style;
   settings = newSettings;
   
-  if (styleChanged && (settings.style === 'particles' || settings.style === 'chaos' || settings.style === 'flow') && functions.length > 0) {
-    initializeVisualizations();
-  }
-  
-  // Update particle configs if intensity changed for any particle-based style
-  if (settings.style === 'particles' || settings.style === 'chaos' || settings.style === 'flow') {
-    functionVisualizations.forEach(viz => {
-      const newConfig = generateParticleConfig(viz.func.complexity);
-      viz.particles.updateConfig(newConfig);
-    });
-  }
+  // Update particle configs if intensity changed
+  functionVisualizations.forEach(viz => {
+    const newConfig = generateParticleConfig(viz.func.complexity);
+    viz.particles.updateConfig(newConfig);
+  });
   
   redraw();
 }

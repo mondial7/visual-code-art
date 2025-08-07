@@ -169,11 +169,11 @@
   var functions = [];
   var filename = "";
   var settings = {
-    style: "particles",
     colorTheme: "rainbow",
     animationEnabled: true,
     particleIntensity: 1
   };
+  var currentStyle = "particles";
   var functionVisualizations = [];
   var lastUpdateTime = 0;
   function setup() {
@@ -184,16 +184,37 @@
   }
   function draw() {
     background(0, 0, 8);
-    if (settings.animationEnabled && (settings.style === "particles" || settings.style === "chaos" || settings.style === "flow")) {
+    if (settings.animationEnabled) {
       updateParticleVisualizations();
       renderParticleVisualizations();
-    } else {
-      drawClassicShapes();
     }
   }
   function windowResized() {
     resizeCanvas(window.innerWidth, window.innerHeight);
     updateFunctionPositions();
+  }
+  function determineAutoStyle(functions2) {
+    if (functions2.length === 0) return "flow";
+    const complexityCounts = {
+      extreme: 0,
+      high: 0,
+      medium: 0,
+      low: 0
+    };
+    functions2.forEach((func) => {
+      complexityCounts[func.complexity.intensityLevel]++;
+    });
+    const totalFunctions = functions2.length;
+    const extremePercentage = complexityCounts.extreme / totalFunctions;
+    const highPercentage = complexityCounts.high / totalFunctions;
+    const combinedHighComplexity = extremePercentage + highPercentage;
+    if (extremePercentage > 0.3 || combinedHighComplexity > 0.6) {
+      return "chaos";
+    } else if (combinedHighComplexity > 0.2 || complexityCounts.medium > totalFunctions * 0.4) {
+      return "particles";
+    } else {
+      return "flow";
+    }
   }
   function initializeVisualizations() {
     functionVisualizations = [];
@@ -221,7 +242,7 @@
   function generateParticleConfig(complexity) {
     const intensity = complexity.overallComplexity;
     let styleMultipliers = { chaos: 1, particles: 25, speed: 3, trails: 15, lifetime: 3e3 };
-    switch (settings.style) {
+    switch (currentStyle) {
       case "chaos":
         styleMultipliers = { chaos: 3, particles: 40, speed: 5, trails: 25, lifetime: 2e3 };
         break;
@@ -269,44 +290,6 @@
       );
     });
   }
-  function drawClassicShapes() {
-    if (functions.length === 0) return;
-    const numCols = Math.ceil(Math.sqrt(functions.length));
-    const numRows = Math.ceil(functions.length / numCols);
-    const cellWidth = width / numCols;
-    const cellHeight = height / numRows;
-    const padding = 10;
-    functions.forEach((func, i) => {
-      const row = Math.floor(i / numCols);
-      const col = i % numCols;
-      const x = col * cellWidth + cellWidth / 2;
-      const y = row * cellHeight + cellHeight / 2;
-      const size = map(func.complexity.overallComplexity, 0, 1, 30, Math.min(cellWidth, cellHeight) - padding * 2);
-      const hue = hashString(func.name) % 360;
-      drawClassicShape(x, y, size, hue, func);
-    });
-  }
-  function drawClassicShape(x, y, size, hue, func) {
-    const complexity = func.complexity.overallComplexity;
-    fill(color(hue, 80, 90));
-    stroke(color(hue, 90, 70));
-    strokeWeight(1 + complexity * 3);
-    ellipseMode("CENTER");
-    ellipse(x, y, size, size);
-    const intensityColors = {
-      "low": color(120, 60, 80),
-      "medium": color(60, 80, 80),
-      "high": color(30, 90, 80),
-      "extreme": color(0, 100, 90)
-    };
-    fill(intensityColors[func.complexity.intensityLevel]);
-    noStroke();
-    ellipse(x, y, size * 0.3, size * 0.3);
-    fill(color(0, 0, 0));
-    textAlign("CENTER", "CENTER");
-    textSize(10);
-    text(func.name, x, y + size / 2 + 15);
-  }
   function updateFunctionPositions() {
     if (functionVisualizations.length === 0) return;
     const numCols = Math.ceil(Math.sqrt(functionVisualizations.length));
@@ -330,7 +313,10 @@
   function handleDataUpdate(data, newFilename) {
     functions = data;
     filename = newFilename;
-    if (settings.animationEnabled && (settings.style === "particles" || settings.style === "chaos" || settings.style === "flow")) {
+    const previousStyle = currentStyle;
+    currentStyle = determineAutoStyle(data);
+    console.log(`[Sketch] Auto-selected style: ${currentStyle} (previous: ${previousStyle}) for ${data.length} functions`);
+    if (settings.animationEnabled) {
       initializeVisualizations();
     }
     updateStatisticsPanel(data, newFilename);
@@ -366,17 +352,11 @@
     console.log("[Sketch] Statistics updated:", { filename: filename2, functionCount, avgComplexity, maxComplexity, mostComplexIntensity });
   }
   function handleSettingsUpdate(newSettings) {
-    const styleChanged = settings.style !== newSettings.style;
     settings = newSettings;
-    if (styleChanged && (settings.style === "particles" || settings.style === "chaos" || settings.style === "flow") && functions.length > 0) {
-      initializeVisualizations();
-    }
-    if (settings.style === "particles" || settings.style === "chaos" || settings.style === "flow") {
-      functionVisualizations.forEach((viz) => {
-        const newConfig = generateParticleConfig(viz.func.complexity);
-        viz.particles.updateConfig(newConfig);
-      });
-    }
+    functionVisualizations.forEach((viz) => {
+      const newConfig = generateParticleConfig(viz.func.complexity);
+      viz.particles.updateConfig(newConfig);
+    });
     redraw();
   }
   window.addEventListener("message", (event) => {

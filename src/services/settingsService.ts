@@ -7,7 +7,6 @@ export class SettingsService {
    */
   public getSettings(): VisualizationSettings {
     return {
-      style: defaultSettings.style,
       colorTheme: defaultSettings.colorTheme,
       animationEnabled: defaultSettings.animationEnabled,
       particleIntensity: defaultSettings.particleIntensity,
