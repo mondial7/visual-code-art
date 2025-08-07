@@ -59,6 +59,7 @@ interface VisualizationSettings {
   padding: number;
   animationEnabled: boolean;
   particleIntensity: number; // 0-1 multiplier for particle effects
+  debugMode: boolean; // Show debug information panel
 }
 
 interface ParticleSystemConfig {
@@ -332,7 +333,8 @@ let settings: VisualizationSettings = {
   customColorSecondary: '#0000FF',
   padding: 10,
   animationEnabled: true,
-  particleIntensity: 1.0
+  particleIntensity: 1.0,
+  debugMode: false
 };
 
 let functionVisualizations: FunctionVisualization[] = [];
@@ -354,9 +356,9 @@ function draw(): void {
     : 0;
   
   const backgroundIntensity = 5 + avgComplexity * 15; // 5-20
-  background(220, 20, backgroundIntensity);
+  background(200, 10, backgroundIntensity); // Changed from 220 to 200 (blue-ish) and reduced saturation
   
-  if (settings.animationEnabled && settings.style === 'particles') {
+  if (settings.animationEnabled && (settings.style === 'particles' || settings.style === 'chaos' || settings.style === 'flow')) {
     updateParticleVisualizations();
     renderParticleVisualizations();
   } else {
@@ -405,15 +407,31 @@ function initializeVisualizations(): void {
 function generateParticleConfig(complexity: ComplexityMetrics): ParticleSystemConfig {
   const intensity = complexity.overallComplexity;
   
+  // Adjust particle behavior based on style
+  let styleMultipliers = { chaos: 1, particles: 25, speed: 3, trails: 15, lifetime: 3000 };
+  
+  switch (settings.style) {
+    case 'chaos':
+      styleMultipliers = { chaos: 3, particles: 40, speed: 5, trails: 25, lifetime: 2000 };
+      break;
+    case 'flow':
+      styleMultipliers = { chaos: 0.3, particles: 15, speed: 2, trails: 30, lifetime: 4000 };
+      break;
+    case 'particles':
+    default:
+      styleMultipliers = { chaos: 1, particles: 25, speed: 3, trails: 15, lifetime: 3000 };
+      break;
+  }
+  
   return {
-    maxParticles: Math.floor(5 + intensity * 25 * settings.particleIntensity),
+    maxParticles: Math.floor(5 + intensity * styleMultipliers.particles * settings.particleIntensity),
     emissionRate: 2 + intensity * 8,
-    particleLifetime: 1000 + intensity * 3000,
-    chaos: intensity * 0.8,
-    speed: 1 + intensity * 3,
+    particleLifetime: 1000 + intensity * styleMultipliers.lifetime,
+    chaos: intensity * styleMultipliers.chaos,
+    speed: 1 + intensity * styleMultipliers.speed,
     size: 4 + intensity * 16,
     colorIntensity: 0.6 + intensity * 0.4,
-    trailLength: Math.floor(intensity * 15)
+    trailLength: Math.floor(intensity * styleMultipliers.trails)
   };
 }
 
@@ -550,7 +568,7 @@ function handleDataUpdate(data: EnhancedFunctionData[], newFilename: string): vo
   functions = data;
   filename = newFilename;
   
-  if (settings.animationEnabled && settings.style === 'particles') {
+  if (settings.animationEnabled && (settings.style === 'particles' || settings.style === 'chaos' || settings.style === 'flow')) {
     initializeVisualizations();
   }
 }
@@ -559,12 +577,12 @@ function handleSettingsUpdate(newSettings: VisualizationSettings): void {
   const styleChanged = settings.style !== newSettings.style;
   settings = newSettings;
   
-  if (styleChanged && settings.style === 'particles' && functions.length > 0) {
+  if (styleChanged && (settings.style === 'particles' || settings.style === 'chaos' || settings.style === 'flow') && functions.length > 0) {
     initializeVisualizations();
   }
   
-  // Update particle configs if intensity changed
-  if (settings.style === 'particles') {
+  // Update particle configs if intensity changed for any particle-based style
+  if (settings.style === 'particles' || settings.style === 'chaos' || settings.style === 'flow') {
     functionVisualizations.forEach(viz => {
       const newConfig = generateParticleConfig(viz.func.complexity);
       viz.particles.updateConfig(newConfig);

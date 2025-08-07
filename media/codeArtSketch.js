@@ -177,7 +177,8 @@
     customColorSecondary: "#0000FF",
     padding: 10,
     animationEnabled: true,
-    particleIntensity: 1
+    particleIntensity: 1,
+    debugMode: false
   };
   var functionVisualizations = [];
   var lastUpdateTime = 0;
@@ -190,8 +191,8 @@
   function draw() {
     const avgComplexity = functions.length > 0 ? functions.reduce((sum, f) => sum + f.complexity.overallComplexity, 0) / functions.length : 0;
     const backgroundIntensity = 5 + avgComplexity * 15;
-    background(220, 20, backgroundIntensity);
-    if (settings.animationEnabled && settings.style === "particles") {
+    background(200, 10, backgroundIntensity);
+    if (settings.animationEnabled && (settings.style === "particles" || settings.style === "chaos" || settings.style === "flow")) {
       updateParticleVisualizations();
       renderParticleVisualizations();
     } else {
@@ -228,15 +229,28 @@
   }
   function generateParticleConfig(complexity) {
     const intensity = complexity.overallComplexity;
+    let styleMultipliers = { chaos: 1, particles: 25, speed: 3, trails: 15, lifetime: 3e3 };
+    switch (settings.style) {
+      case "chaos":
+        styleMultipliers = { chaos: 3, particles: 40, speed: 5, trails: 25, lifetime: 2e3 };
+        break;
+      case "flow":
+        styleMultipliers = { chaos: 0.3, particles: 15, speed: 2, trails: 30, lifetime: 4e3 };
+        break;
+      case "particles":
+      default:
+        styleMultipliers = { chaos: 1, particles: 25, speed: 3, trails: 15, lifetime: 3e3 };
+        break;
+    }
     return {
-      maxParticles: Math.floor(5 + intensity * 25 * settings.particleIntensity),
+      maxParticles: Math.floor(5 + intensity * styleMultipliers.particles * settings.particleIntensity),
       emissionRate: 2 + intensity * 8,
-      particleLifetime: 1e3 + intensity * 3e3,
-      chaos: intensity * 0.8,
-      speed: 1 + intensity * 3,
+      particleLifetime: 1e3 + intensity * styleMultipliers.lifetime,
+      chaos: intensity * styleMultipliers.chaos,
+      speed: 1 + intensity * styleMultipliers.speed,
       size: 4 + intensity * 16,
       colorIntensity: 0.6 + intensity * 0.4,
-      trailLength: Math.floor(intensity * 15)
+      trailLength: Math.floor(intensity * styleMultipliers.trails)
     };
   }
   function updateParticleVisualizations() {
@@ -340,17 +354,17 @@
   function handleDataUpdate(data, newFilename) {
     functions = data;
     filename = newFilename;
-    if (settings.animationEnabled && settings.style === "particles") {
+    if (settings.animationEnabled && (settings.style === "particles" || settings.style === "chaos" || settings.style === "flow")) {
       initializeVisualizations();
     }
   }
   function handleSettingsUpdate(newSettings) {
     const styleChanged = settings.style !== newSettings.style;
     settings = newSettings;
-    if (styleChanged && settings.style === "particles" && functions.length > 0) {
+    if (styleChanged && (settings.style === "particles" || settings.style === "chaos" || settings.style === "flow") && functions.length > 0) {
       initializeVisualizations();
     }
-    if (settings.style === "particles") {
+    if (settings.style === "particles" || settings.style === "chaos" || settings.style === "flow") {
       functionVisualizations.forEach((viz) => {
         const newConfig = generateParticleConfig(viz.func.complexity);
         viz.particles.updateConfig(newConfig);

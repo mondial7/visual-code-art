@@ -23,25 +23,34 @@
       "properties": {
         "visualCodeArt.visualization.style": {
           "type": "string",
-          "default": "squares",
+          "default": "particles",
           "enum": [
-            "squares",
-            "circles",
-            "triangles"
+            "particles",
+            "chaos",
+            "flow",
+            "classic"
           ],
-          "description": "The shape style to use for visualization"
+          "description": "The visualization style to use for representing code complexity"
         },
         "visualCodeArt.visualization.colorTheme": {
           "type": "string",
-          "default": "rainbow",
+          "default": "intensity",
           "enum": [
             "rainbow",
+            "intensity",
             "monoBlue",
             "monoGreen",
             "monoPurple",
             "custom"
           ],
           "description": "Color theme for visualizations"
+        },
+        "visualCodeArt.visualization.particleIntensity": {
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.0,
+          "maximum": 2.0,
+          "description": "Particle intensity multiplier (0.0 to 2.0)"
         },
         "visualCodeArt.visualization.customColorPrimary": {
           "type": "string",

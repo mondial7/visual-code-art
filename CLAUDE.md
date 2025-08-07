@@ -55,3 +55,6 @@ Settings sync between VSCode configuration and webview UI with live preview func
 3. Data sent to webview via postMessage
 4. p5.js sketch renders visualization based on function sizes and settings
 5. Settings changes flow from webview → SettingsService → VSCode configuration → webview update
+
+## Development Guidelines
+- remember to create small commits at each step. Follow baby steps for the implementation.

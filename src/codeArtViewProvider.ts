@@ -97,6 +97,12 @@ export class CodeArtViewProvider implements vscode.WebviewViewProvider {
             vscode.window.showErrorMessage(`Failed to update settings: ${error}`);
           }
           break;
+        case 'requestDebugData':
+          // Re-process current file for debug display
+          if (vscode.window.activeTextEditor) {
+            this._processActiveFile(vscode.window.activeTextEditor.document, webviewView);
+          }
+          break;
         default:
           console.warn('Unknown message type from webview:', message.type);
       }

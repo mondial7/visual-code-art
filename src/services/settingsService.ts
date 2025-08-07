@@ -16,6 +16,7 @@ export class SettingsService {
       padding: config.get('layout.padding', defaultSettings.padding),
       animationEnabled: config.get('animation.enabled', defaultSettings.animationEnabled),
       particleIntensity: config.get('visualization.particleIntensity', defaultSettings.particleIntensity),
+      debugMode: config.get('debug.enabled', defaultSettings.debugMode),
     };
   }
 
@@ -45,6 +46,9 @@ export class SettingsService {
     }
     if (settings.particleIntensity !== undefined) {
       await config.update('visualization.particleIntensity', settings.particleIntensity, vscode.ConfigurationTarget.Workspace);
+    }
+    if (settings.debugMode !== undefined) {
+      await config.update('debug.enabled', settings.debugMode, vscode.ConfigurationTarget.Workspace);
     }
   }
 }
