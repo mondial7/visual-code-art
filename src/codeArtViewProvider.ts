@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { CodeParser } from './services/codeParser';
+import { ComplexityAnalyzer } from './services/complexityAnalyzer';
 import { SettingsService } from './services/settingsService';
 import { WebviewContentProvider } from './webview/webviewContent';
 import { FileData } from './models/code';
@@ -9,6 +10,7 @@ export class CodeArtViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'visual-code-art.canvasView';
   private _view?: vscode.WebviewView;
   private readonly _codeParser: CodeParser;
+  private readonly _complexityAnalyzer: ComplexityAnalyzer;
   private readonly _settingsService: SettingsService;
   private readonly _webviewContent: WebviewContentProvider;
 
@@ -17,6 +19,7 @@ export class CodeArtViewProvider implements vscode.WebviewViewProvider {
   ) {
     // Initialize services
     this._codeParser = new CodeParser();
+    this._complexityAnalyzer = new ComplexityAnalyzer();
     this._settingsService = new SettingsService();
     this._webviewContent = new WebviewContentProvider();
     // Listen for configuration changes
@@ -101,13 +104,16 @@ export class CodeArtViewProvider implements vscode.WebviewViewProvider {
   }
 
   private _processActiveFile(document: vscode.TextDocument, webviewView: vscode.WebviewView) {
-    // Extract functions and their sizes
-    const functions = this._codeParser.extractFunctions(document);
+    // Extract functions and their basic metrics
+    const basicFunctions = this._codeParser.extractFunctions(document);
     
-    // Send data to webview
+    // Analyze complexity and generate enhanced data
+    const enhancedFunctions = this._complexityAnalyzer.analyzeFunctions(document, basicFunctions);
+    
+    // Send enhanced data to webview
     webviewView.webview.postMessage({
       type: 'update',
-      data: functions,
+      data: enhancedFunctions,
       filename: path.basename(document.fileName)
     });
   }

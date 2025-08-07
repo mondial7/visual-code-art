@@ -1,17 +1,19 @@
 export interface VisualizationSettings {
-  style: 'squares' | 'circles' | 'triangles';
-  colorTheme: 'rainbow' | 'monoBlue' | 'monoGreen' | 'monoPurple' | 'custom';
+  style: 'particles' | 'chaos' | 'flow' | 'classic';
+  colorTheme: 'rainbow' | 'intensity' | 'monoBlue' | 'monoGreen' | 'monoPurple' | 'custom';
   customColorPrimary: string;
   customColorSecondary: string;
   padding: number;
   animationEnabled: boolean;
+  particleIntensity: number; // 0-1 multiplier for particle effects
 }
 
 export const defaultSettings: VisualizationSettings = {
-  style: 'squares',
-  colorTheme: 'rainbow',
+  style: 'particles',
+  colorTheme: 'intensity',
   customColorPrimary: '#FF0000',
   customColorSecondary: '#0000FF',
   padding: 10,
-  animationEnabled: true
+  animationEnabled: true,
+  particleIntensity: 1.0
 };

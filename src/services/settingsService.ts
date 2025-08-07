@@ -9,12 +9,13 @@ export class SettingsService {
     const config = vscode.workspace.getConfiguration('visualCodeArt');
     
     return {
-      style: config.get('visualization.style', defaultSettings.style) as 'squares' | 'circles' | 'triangles',
-      colorTheme: config.get('visualization.colorTheme', defaultSettings.colorTheme) as 'rainbow' | 'monoBlue' | 'monoGreen' | 'monoPurple' | 'custom',
+      style: config.get('visualization.style', defaultSettings.style) as 'particles' | 'chaos' | 'flow' | 'classic',
+      colorTheme: config.get('visualization.colorTheme', defaultSettings.colorTheme) as 'rainbow' | 'intensity' | 'monoBlue' | 'monoGreen' | 'monoPurple' | 'custom',
       customColorPrimary: config.get('visualization.customColorPrimary', defaultSettings.customColorPrimary),
       customColorSecondary: config.get('visualization.customColorSecondary', defaultSettings.customColorSecondary),
       padding: config.get('layout.padding', defaultSettings.padding),
       animationEnabled: config.get('animation.enabled', defaultSettings.animationEnabled),
+      particleIntensity: config.get('visualization.particleIntensity', defaultSettings.particleIntensity),
     };
   }
 
@@ -41,6 +42,9 @@ export class SettingsService {
     }
     if (settings.animationEnabled !== undefined) {
       await config.update('animation.enabled', settings.animationEnabled, vscode.ConfigurationTarget.Workspace);
+    }
+    if (settings.particleIntensity !== undefined) {
+      await config.update('visualization.particleIntensity', settings.particleIntensity, vscode.ConfigurationTarget.Workspace);
     }
   }
 }

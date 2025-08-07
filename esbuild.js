@@ -47,7 +47,7 @@ async function main() {
 	// Build sketch for webview
 	const sketchCtx = await esbuild.context({
 		entryPoints: [
-			'src/sketch/codeArtSketch.ts'
+			'src/sketch/enhancedCodeArtSketch.ts'
 		],
 		bundle: true,
 		format: 'iife', // Immediately Invoked Function Expression for browser
