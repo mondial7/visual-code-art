@@ -9,34 +9,82 @@ export class CodeParser {
     const text = document.getText();
     const functions: CodeFunction[] = [];
     
-    // Function regex pattern - matches various function declaration styles
-    const functionRegex = /function\s+(\w+)\s*\([^)]*\)\s*{|\b(\w+)\s*=\s*function\s*\([^)]*\)\s*{|(\w+)\s*\([^)]*\)\s*{|(\w+)\s*:\s*function\s*\([^)]*\)\s*{/g;
+    // Multiple patterns for different function declaration styles
+    const patterns = [
+      // Traditional function declaration: function name() {}
+      /function\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\([^)]*\)\s*\{/g,
+      
+      // Const/let/var with arrow function: const name = () => {}
+      /(?:const|let|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*(?:async\s+)?\([^)]*\)\s*=>\s*\{/g,
+      
+      // Const/let/var with function expression: const name = function() {}
+      /(?:const|let|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*(?:async\s+)?function\s*\([^)]*\)\s*\{/g,
+      
+      // Object method: name() {} or name: function() {}
+      /([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:\s*(?:async\s+)?function\s*\([^)]*\)\s*\{/g,
+      
+      // Object shorthand method: name() {}
+      /([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\([^)]*\)\s*\{/g,
+      
+      // Class method: methodName() {}
+      /(?:public|private|protected|static)?\s*(?:async\s+)?([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\([^)]*\)\s*\{/g,
+      
+      // Export function: export function name() {}
+      /export\s+function\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\([^)]*\)\s*\{/g,
+      
+      // Export const arrow: export const name = () => {}
+      /export\s+const\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*(?:async\s+)?\([^)]*\)\s*=>\s*\{/g
+    ];
     
-    let match;
-    while ((match = functionRegex.exec(text)) !== null) {
-      // Find the function name from the match groups
-      const name = match[1] || match[2] || match[3] || match[4] || 'anonymous';
-      
-      // Get position info
-      const startPos = match.index;
-      const startLine = document.positionAt(startPos).line;
-      
-      // Find the end of the function by matching braces
-      const functionInfo = this.findFunctionEnd(text, startPos);
-      const endLine = document.positionAt(functionInfo.endPos).line;
-      
-      // Calculate lines
-      const lines = endLine - startLine + 1;
-      
-      functions.push({ 
-        name, 
-        size: lines,
-        startLine,
-        endLine
-      });
+    // Apply each pattern
+    for (const pattern of patterns) {
+      let match;
+      while ((match = pattern.exec(text)) !== null) {
+        const name = match[1];
+        
+        // Skip if it's a control flow statement
+        if (this.isControlFlowStatement(name)) {
+          continue;
+        }
+        
+        // Skip if it's already found
+        if (functions.some(f => f.name === name)) {
+          continue;
+        }
+        
+        // Get position info
+        const startPos = match.index;
+        const startLine = document.positionAt(startPos).line;
+        
+        // Find the end of the function by matching braces
+        const functionInfo = this.findFunctionEnd(text, startPos);
+        const endLine = document.positionAt(functionInfo.endPos).line;
+        
+        // Calculate lines
+        const lines = endLine - startLine + 1;
+        
+        functions.push({ 
+          name, 
+          size: lines,
+          startLine,
+          endLine
+        });
+      }
     }
     
-    return functions;
+    return functions.sort((a, b) => a.startLine - b.startLine);
+  }
+  
+  /**
+   * Check if a name is a control flow statement that should be ignored
+   */
+  private isControlFlowStatement(name: string): boolean {
+    const controlFlowKeywords = [
+      'if', 'else', 'for', 'while', 'do', 'switch', 'case', 'try', 'catch', 
+      'finally', 'return', 'break', 'continue', 'throw', 'with', 'typeof',
+      'instanceof', 'in', 'delete', 'void', 'new', 'this', 'super'
+    ];
+    return controlFlowKeywords.includes(name.toLowerCase());
   }
   
   /**

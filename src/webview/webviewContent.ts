@@ -143,13 +143,13 @@ export class WebviewContentProvider {
         
         #debug-panel {
           padding: 16px;
-          border-top: 1px solid var(--vscode-widget-border);
           background: var(--vscode-sideBar-background);
           color: var(--vscode-foreground);
           font-family: var(--vscode-editor-font-family);
           font-size: calc(var(--vscode-font-size) * 0.9);
-          max-height: 300px;
+          height: 100%;
           overflow-y: auto;
+          flex: 1;
         }
         
         #debug-panel h3 {
@@ -287,15 +287,23 @@ export class WebviewContentProvider {
         });
         document.getElementById('debugToggle').addEventListener('change', function() {
           const debugPanel = document.getElementById('debug-panel');
+          const canvasContainer = document.getElementById('canvas-container');
+          
           if (this.checked) {
-            debugPanel.style.display = 'block';
+            // Hide canvas and show debug panel
+            canvasContainer.style.display = 'none';
+            debugPanel.style.display = 'flex';
+            
             // Show immediate status while loading
-            document.getElementById('debug-content').innerHTML = '<p><strong>Debug Panel Enabled</strong><br>Waiting for data from extension...</p>';
+            document.getElementById('debug-content').innerHTML = '<p><strong>🔍 Debug Panel Enabled</strong><br><em>Canvas is hidden while in debug mode.</em><br><br>⏳ Waiting for data from extension...</p>';
+            
             // Request fresh data for debug display
             vscode.postMessage({
               type: 'requestDebugData'
             });
           } else {
+            // Show canvas and hide debug panel
+            canvasContainer.style.display = 'flex';
             debugPanel.style.display = 'none';
           }
           updateSettings();
@@ -311,24 +319,51 @@ export class WebviewContentProvider {
           }
           
           if (!data || data.length === 0) {
-            debugContent.innerHTML = '<p><strong>No functions found in current file.</strong><br>File: ' + (filename || 'Unknown') + '<br>This could mean:<br>• Parser doesn\'t recognize the function syntax<br>• File contains no functions<br>• File is not a supported type<br><br><em>Check the Developer Console (F12) for more details.</em></p>';
+            debugContent.innerHTML = 
+              '<h4>🔍 Debug Information</h4>' +
+              '<p><strong>File:</strong> ' + (filename || 'Unknown') + '</p>' +
+              '<p><strong style="color: #ffa500;">⚠️ No functions found in current file.</strong></p>' +
+              '<p><strong>This could mean:</strong></p>' +
+              '<ul>' +
+                '<li>Parser doesn\'t recognize the function syntax</li>' +
+                '<li>File contains no functions</li>' +
+                '<li>File is not a supported type</li>' +
+                '<li>Functions use unsupported patterns</li>' +
+              '</ul>' +
+              '<p><strong>💡 To help debug:</strong></p>' +
+              '<ul>' +
+                '<li>Check the Developer Console (F12) for detailed logs</li>' +
+                '<li>Look for <code>[CodeArt]</code> messages in VSCode Debug Console</li>' +
+                '<li>Try a simple .js file with <code>function test() {}</code></li>' +
+              '</ul>';
             return;
           }
           
-          let html = '<h4>File: ' + (filename || 'Unknown') + '</h4>';
-          html += '<p><strong>Functions found:</strong> ' + data.length + '</p>';
+          let html = '<h4>🔍 Debug Information</h4>';
+          html += '<p><strong>File:</strong> ' + (filename || 'Unknown') + '</p>';
+          html += '<p><strong>✅ Functions found:</strong> ' + data.length + '</p>';
+          html += '<hr>';
           
           data.forEach((func, index) => {
-            html += '<pre><strong>' + func.name + '</strong>\n';
-            html += 'Size (lines): ' + func.size + '\n';
+            const complexityColor = func.complexity ? 
+              (func.complexity.intensityLevel === 'extreme' ? '#ff6b6b' : 
+               func.complexity.intensityLevel === 'high' ? '#ffa500' : 
+               func.complexity.intensityLevel === 'medium' ? '#4ecdc4' : '#95e1d3') : '#ccc';
+               
+            html += '<div style="border-left: 4px solid ' + complexityColor + '; padding-left: 12px; margin-bottom: 16px;">';
+            html += '<h5 style="margin: 0 0 8px 0;">' + (index + 1) + '. ' + func.name + '</h5>';
+            html += '<p><strong>Lines:</strong> ' + func.size + ' (lines ' + (func.startLine + 1) + '-' + (func.endLine + 1) + ')</p>';
+            
             if (func.complexity) {
-              html += 'Line Count: ' + func.complexity.lineCount + '\n';
-              html += 'Cyclomatic Complexity: ' + func.complexity.cyclomaticComplexity + '\n';
-              html += 'Nesting Depth: ' + func.complexity.nestingDepth + '\n';
-              html += 'Overall Complexity: ' + func.complexity.overallComplexity.toFixed(3) + '\n';
-              html += 'Intensity Level: ' + func.complexity.intensityLevel + '\n';
+              html += '<p><strong>Complexity Analysis:</strong></p>';
+              html += '<ul>';
+              html += '<li><strong>Overall:</strong> ' + func.complexity.overallComplexity.toFixed(3) + '</li>';
+              html += '<li><strong>Cyclomatic:</strong> ' + func.complexity.cyclomaticComplexity + '</li>';
+              html += '<li><strong>Nesting Depth:</strong> ' + func.complexity.nestingDepth + '</li>';
+              html += '<li><strong>Intensity:</strong> <span style="color: ' + complexityColor + '; font-weight: bold;">' + func.complexity.intensityLevel.toUpperCase() + '</span></li>';
+              html += '</ul>';
             }
-            html += '</pre>';
+            html += '</div>';
           });
           
           debugContent.innerHTML = html;
@@ -355,10 +390,18 @@ export class WebviewContentProvider {
             document.getElementById('intensitySlider').value = intensityValue;
             document.getElementById('intensityValue').textContent = intensityValue + '%';
             
-            // Update debug toggle
+            // Update debug toggle and panel visibility
             document.getElementById('debugToggle').checked = settings.debugMode || false;
             const debugPanel = document.getElementById('debug-panel');
-            debugPanel.style.display = settings.debugMode ? 'block' : 'none';
+            const canvasContainer = document.getElementById('canvas-container');
+            
+            if (settings.debugMode) {
+              canvasContainer.style.display = 'none';
+              debugPanel.style.display = 'flex';
+            } else {
+              canvasContainer.style.display = 'flex';
+              debugPanel.style.display = 'none';
+            }
             
             // Show/hide custom colors
             const customColors = document.getElementById('customColors');
