@@ -43,11 +43,11 @@
           y: Math.sin(angle) * this.config.speed * random(0.5, 1.5)
         },
         acceleration: { x: 0, y: 0 },
-        size: this.config.size * random(0.7, 1.3),
+        size: this.config.size * random(0.8, 1.4),
         color: {
           hue: random(0, 360),
-          saturation: 60 + this.config.colorIntensity * 40,
-          brightness: 70 + this.config.colorIntensity * 30,
+          saturation: 70 + this.config.colorIntensity * 30,
+          brightness: 85 + this.config.colorIntensity * 15,
           alpha: 1
         },
         life: this.config.particleLifetime,
@@ -88,10 +88,12 @@
         }
         particle.life -= deltaTime;
         const lifeRatio = particle.life / particle.maxLife;
-        particle.color.alpha = Math.max(0, lifeRatio);
+        const smoothFade = Math.pow(lifeRatio, 0.6);
+        particle.color.alpha = Math.max(0.1, smoothFade);
         const pulseFreq = 5e-3 + this.config.chaos * 0.01;
-        const pulseAmt = 1 + Math.sin(this.time * pulseFreq + parseFloat(particle.id)) * 0.2 * this.config.chaos;
-        particle.size = this.config.size * pulseAmt;
+        const basePulse = Math.sin(this.time * pulseFreq + parseFloat(particle.id)) * 0.3;
+        const pulseAmt = 1 + basePulse * (0.5 + this.config.chaos * 0.5);
+        particle.size = this.config.size * random(0.8, 1.4) * pulseAmt;
       });
     }
     cleanupParticles() {
@@ -105,7 +107,7 @@
         for (let i = 1; i < particle.trail.length; i++) {
           const segment = particle.trail[i];
           const prevSegment = particle.trail[i - 1];
-          const alpha = i / particle.trail.length * particle.color.alpha * 0.3;
+          const alpha = i / particle.trail.length * particle.color.alpha * 0.6;
           stroke(color(
             particle.color.hue,
             particle.color.saturation * 0.8,
@@ -125,17 +127,13 @@
           particleColor.brightness,
           particleColor.alpha * 255
         ));
-        if (this.config.chaos > 0.3) {
-          stroke(color(
-            particleColor.hue,
-            particleColor.saturation + 20,
-            particleColor.brightness - 20,
-            particleColor.alpha * 0.8 * 255
-          ));
-          strokeWeight(1 + this.config.chaos * 2);
-        } else {
-          noStroke();
-        }
+        stroke(color(
+          particleColor.hue,
+          Math.min(100, particleColor.saturation + 30),
+          Math.max(20, particleColor.brightness - 30),
+          particleColor.alpha * 0.9 * 255
+        ));
+        strokeWeight(this.config.chaos > 0.3 ? 1.5 + this.config.chaos * 2 : 1.2);
         if (this.config.chaos > 0.7) {
           this.drawAngularShape(position, size, this.config.chaos);
         } else {
@@ -244,7 +242,7 @@
       particleLifetime: 1e3 + intensity * styleMultipliers.lifetime,
       chaos: intensity * styleMultipliers.chaos,
       speed: 1 + intensity * styleMultipliers.speed,
-      size: 12 + intensity * 24,
+      size: 20 + intensity * 40,
       colorIntensity: 0.6 + intensity * 0.4,
       trailLength: Math.floor(intensity * styleMultipliers.trails)
     };

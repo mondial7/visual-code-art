@@ -58,3 +58,4 @@ Settings sync between VSCode configuration and webview UI with live preview func
 
 ## Development Guidelines
 - remember to create small commits at each step. Follow baby steps for the implementation.
+- Remember to commit frequently!
