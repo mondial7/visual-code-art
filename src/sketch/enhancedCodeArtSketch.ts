@@ -350,13 +350,16 @@ function setup(): void {
 }
 
 function draw(): void {
+  // TEMPORARY: Bright green background to confirm new code is loading
+  background(120, 80, 50); // Bright green for debugging
+  console.log('draw() called - functions count:', functions.length);
+  
   // Dynamic background based on overall complexity
   const avgComplexity = functions.length > 0 
     ? functions.reduce((sum, f) => sum + f.complexity.overallComplexity, 0) / functions.length
     : 0;
   
-  const backgroundIntensity = 5 + avgComplexity * 15; // 5-20
-  background(200, 10, backgroundIntensity); // Changed from 220 to 200 (blue-ish) and reduced saturation
+  console.log('Average complexity:', avgComplexity);
   
   if (settings.animationEnabled && (settings.style === 'particles' || settings.style === 'chaos' || settings.style === 'flow')) {
     updateParticleVisualizations();

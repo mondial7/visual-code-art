@@ -4,7 +4,6 @@ import { CodeParser } from './services/codeParser';
 import { ComplexityAnalyzer } from './services/complexityAnalyzer';
 import { SettingsService } from './services/settingsService';
 import { WebviewContentProvider } from './webview/webviewContent';
-import { FileData } from './models/code';
 
 export class CodeArtViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'visual-code-art.canvasView';
@@ -110,18 +109,36 @@ export class CodeArtViewProvider implements vscode.WebviewViewProvider {
   }
 
   private _processActiveFile(document: vscode.TextDocument, webviewView: vscode.WebviewView) {
-    // Extract functions and their basic metrics
-    const basicFunctions = this._codeParser.extractFunctions(document);
-    
-    // Analyze complexity and generate enhanced data
-    const enhancedFunctions = this._complexityAnalyzer.analyzeFunctions(document, basicFunctions);
-    
-    // Send enhanced data to webview
-    webviewView.webview.postMessage({
-      type: 'update',
-      data: enhancedFunctions,
-      filename: path.basename(document.fileName)
-    });
+    try {
+      console.log(`[CodeArt] Processing file: ${document.fileName} (${document.languageId})`);
+      
+      // Extract functions and their basic metrics
+      const basicFunctions = this._codeParser.extractFunctions(document);
+      console.log(`[CodeArt] Found ${basicFunctions.length} functions:`, basicFunctions.map(f => f.name));
+      
+      // Analyze complexity and generate enhanced data
+      const enhancedFunctions = this._complexityAnalyzer.analyzeFunctions(document, basicFunctions);
+      console.log(`[CodeArt] Enhanced ${enhancedFunctions.length} functions with complexity data`);
+      
+      // Send enhanced data to webview
+      webviewView.webview.postMessage({
+        type: 'update',
+        data: enhancedFunctions,
+        filename: path.basename(document.fileName)
+      });
+      
+      console.log(`[CodeArt] Data sent to webview for ${path.basename(document.fileName)}`);
+    } catch (error) {
+      console.error(`[CodeArt] Error processing file ${document.fileName}:`, error);
+      
+      // Send error info to webview
+      webviewView.webview.postMessage({
+        type: 'update',
+        data: [],
+        filename: path.basename(document.fileName),
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
   }
   
   private _updateSettings() {

@@ -289,6 +289,8 @@ export class WebviewContentProvider {
           const debugPanel = document.getElementById('debug-panel');
           if (this.checked) {
             debugPanel.style.display = 'block';
+            // Show immediate status while loading
+            document.getElementById('debug-content').innerHTML = '<p><strong>Debug Panel Enabled</strong><br>Waiting for data from extension...</p>';
             // Request fresh data for debug display
             vscode.postMessage({
               type: 'requestDebugData'
@@ -300,10 +302,16 @@ export class WebviewContentProvider {
         });
         
         // Function to update debug display
-        function updateDebugDisplay(data, filename) {
+        function updateDebugDisplay(data, filename, error) {
           const debugContent = document.getElementById('debug-content');
+          
+          if (error) {
+            debugContent.innerHTML = '<p><strong style="color: #ff6b6b;">ERROR</strong><br>File: ' + (filename || 'Unknown') + '<br><strong>Error:</strong> ' + error + '</p>';
+            return;
+          }
+          
           if (!data || data.length === 0) {
-            debugContent.innerHTML = '<p><strong>No functions found in current file.</strong><br>File: ' + (filename || 'Unknown') + '<br>This could mean:<br>• Parser doesn\'t recognize the function syntax<br>• File contains no functions<br>• File is not a supported type</p>';
+            debugContent.innerHTML = '<p><strong>No functions found in current file.</strong><br>File: ' + (filename || 'Unknown') + '<br>This could mean:<br>• Parser doesn\'t recognize the function syntax<br>• File contains no functions<br>• File is not a supported type<br><br><em>Check the Developer Console (F12) for more details.</em></p>';
             return;
           }
           
@@ -332,7 +340,7 @@ export class WebviewContentProvider {
           if (message.type === 'update') {
             // Update debug display if debug mode is enabled
             if (document.getElementById('debugToggle').checked) {
-              updateDebugDisplay(message.data, message.filename);
+              updateDebugDisplay(message.data, message.filename, message.error);
             }
           } else if (message.type === 'settings') {
             const settings = message.settings;

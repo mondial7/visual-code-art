@@ -189,9 +189,10 @@
     lastUpdateTime = millis();
   }
   function draw() {
+    background(120, 80, 50);
+    console.log("draw() called - functions count:", functions.length);
     const avgComplexity = functions.length > 0 ? functions.reduce((sum, f) => sum + f.complexity.overallComplexity, 0) / functions.length : 0;
-    const backgroundIntensity = 5 + avgComplexity * 15;
-    background(200, 10, backgroundIntensity);
+    console.log("Average complexity:", avgComplexity);
     if (settings.animationEnabled && (settings.style === "particles" || settings.style === "chaos" || settings.style === "flow")) {
       updateParticleVisualizations();
       renderParticleVisualizations();
