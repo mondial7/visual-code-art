@@ -6,7 +6,6 @@ export interface VisualizationSettings {
   padding: number;
   animationEnabled: boolean;
   particleIntensity: number; // 0-1 multiplier for particle effects
-  debugMode: boolean; // Show debug information panel
 }
 
 export const defaultSettings: VisualizationSettings = {
@@ -16,6 +15,5 @@ export const defaultSettings: VisualizationSettings = {
   customColorSecondary: '#0000FF',
   padding: 10,
   animationEnabled: true,
-  particleIntensity: 1.0,
-  debugMode: false
+  particleIntensity: 1.0
 };

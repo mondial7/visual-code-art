@@ -59,7 +59,6 @@ interface VisualizationSettings {
   padding: number;
   animationEnabled: boolean;
   particleIntensity: number; // 0-1 multiplier for particle effects
-  debugMode: boolean; // Show debug information panel
 }
 
 interface ParticleSystemConfig {
@@ -333,8 +332,7 @@ let settings: VisualizationSettings = {
   customColorSecondary: '#0000FF',
   padding: 10,
   animationEnabled: true,
-  particleIntensity: 1.0,
-  debugMode: false
+  particleIntensity: 1.0
 };
 
 let functionVisualizations: FunctionVisualization[] = [];
@@ -350,16 +348,8 @@ function setup(): void {
 }
 
 function draw(): void {
-  // TEMPORARY: Bright green background to confirm new code is loading
-  background(120, 80, 50); // Bright green for debugging
-  console.log('draw() called - functions count:', functions.length);
-  
-  // Dynamic background based on overall complexity
-  const avgComplexity = functions.length > 0 
-    ? functions.reduce((sum, f) => sum + f.complexity.overallComplexity, 0) / functions.length
-    : 0;
-  
-  console.log('Average complexity:', avgComplexity);
+  // Dark background for better visibility
+  background(0, 0, 8); // Very dark gray, almost black
   
   if (settings.animationEnabled && (settings.style === 'particles' || settings.style === 'chaos' || settings.style === 'flow')) {
     updateParticleVisualizations();
@@ -367,8 +357,6 @@ function draw(): void {
   } else {
     drawClassicShapes();
   }
-  
-  displayInfo();
 }
 
 function windowResized(): void {
@@ -432,7 +420,7 @@ function generateParticleConfig(complexity: ComplexityMetrics): ParticleSystemCo
     particleLifetime: 1000 + intensity * styleMultipliers.lifetime,
     chaos: intensity * styleMultipliers.chaos,
     speed: 1 + intensity * styleMultipliers.speed,
-    size: 4 + intensity * 16,
+    size: 12 + intensity * 24,
     colorIntensity: 0.6 + intensity * 0.4,
     trailLength: Math.floor(intensity * styleMultipliers.trails)
   };
@@ -545,17 +533,6 @@ function updateFunctionPositions(): void {
 
 // ===== UTILITY FUNCTIONS =====
 
-function displayInfo(): void {
-  const infoElement = document.getElementById('info');
-  if (infoElement) {
-    const totalComplexity = functions.reduce((sum, f) => sum + f.complexity.overallComplexity, 0);
-    const avgComplexity = functions.length > 0 ? (totalComplexity / functions.length).toFixed(2) : '0.00';
-    
-    infoElement.textContent = 
-      `File: ${filename || 'No file selected'} | Functions: ${functions.length} | Avg Complexity: ${avgComplexity}`;
-  }
-}
-
 function hashString(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -574,6 +551,38 @@ function handleDataUpdate(data: EnhancedFunctionData[], newFilename: string): vo
   if (settings.animationEnabled && (settings.style === 'particles' || settings.style === 'chaos' || settings.style === 'flow')) {
     initializeVisualizations();
   }
+  
+  // Update statistics panel
+  updateStatisticsPanel(data, newFilename);
+}
+
+function updateStatisticsPanel(data: EnhancedFunctionData[], filename: string): void {
+  const functionCount = data.length;
+  let avgComplexity = '0.00';
+  let maxComplexity = 'None';
+  
+  if (functionCount > 0) {
+    const totalComplexity = data.reduce((sum, func) => sum + func.complexity.overallComplexity, 0);
+    avgComplexity = (totalComplexity / functionCount).toFixed(2);
+    
+    const mostComplex = data.reduce((max, func) => 
+      func.complexity.overallComplexity > max.complexity.overallComplexity ? func : max
+    );
+    maxComplexity = mostComplex.name + ' (' + mostComplex.complexity.intensityLevel + ')';
+  }
+  
+  // Update DOM elements
+  const fileElement = document.getElementById('file-name');
+  const countElement = document.getElementById('function-count');
+  const avgElement = document.getElementById('avg-complexity');
+  const maxElement = document.getElementById('max-complexity');
+  
+  if (fileElement) fileElement.textContent = filename || 'No file selected';
+  if (countElement) countElement.textContent = functionCount.toString();
+  if (avgElement) avgElement.textContent = avgComplexity;
+  if (maxElement) maxElement.textContent = maxComplexity;
+  
+  console.log('[Sketch] Statistics updated:', {filename, functionCount, avgComplexity, maxComplexity});
 }
 
 function handleSettingsUpdate(newSettings: VisualizationSettings): void {
