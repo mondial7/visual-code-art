@@ -1,25 +1,116 @@
 import * as vscode from 'vscode';
 import { CodeFunction } from '../models/code';
 import { ComplexityMetrics, AnalyzedFunction, VisualizationParams } from '../models/complexity';
+import { TypeScriptAstParser, EnhancedFunctionMetrics } from './typeScriptAstParser';
 
 /**
  * Analyzes code complexity and generates visualization parameters
  */
 export class ComplexityAnalyzer {
+  private tsParser = new TypeScriptAstParser();
   
   /**
    * Analyze functions and calculate complexity metrics
+   * Uses enhanced TypeScript AST analysis for JS/TS files
    */
   public analyzeFunctions(document: vscode.TextDocument, functions: CodeFunction[]): AnalyzedFunction[] {
+    // Try to get enhanced metrics for JS/TS files
+    if (this.isJavaScriptOrTypeScript(document)) {
+      try {
+        const enhancedFunctions = this.tsParser.extractEnhancedFunctions(document);
+        return this.analyzeEnhancedFunctions(enhancedFunctions);
+      } catch (error) {
+        console.warn('[ComplexityAnalyzer] Enhanced analysis failed, falling back to basic analysis:', error);
+      }
+    }
+    
+    // Fall back to basic analysis for other languages or if enhanced analysis fails
+    return this.analyzeBasicFunctions(document, functions);
+  }
+
+  /**
+   * Analyze functions using enhanced TypeScript AST metrics
+   */
+  private analyzeEnhancedFunctions(enhancedFunctions: EnhancedFunctionMetrics[]): AnalyzedFunction[] {
+    return enhancedFunctions.map(func => {
+      const complexity = this.calculateEnhancedComplexity(func);
+      return {
+        name: func.name,
+        size: func.size,
+        startLine: func.startLine,
+        endLine: func.endLine,
+        complexity
+      };
+    });
+  }
+
+  /**
+   * Analyze functions using basic line-counting approach (fallback)
+   */
+  private analyzeBasicFunctions(document: vscode.TextDocument, functions: CodeFunction[]): AnalyzedFunction[] {
     const text = document.getText();
     
     return functions.map(func => {
-      const complexity = this.calculateComplexity(text, func);
+      const complexity = this.calculateBasicComplexity(text, func);
       return {
         ...func,
         complexity
       };
     });
+  }
+
+  /**
+   * Calculate complexity metrics using enhanced AST analysis
+   */
+  private calculateEnhancedComplexity(func: EnhancedFunctionMetrics): ComplexityMetrics {
+    // Use real cyclomatic complexity from AST analysis
+    const cyclomaticComplexity = func.cyclomaticComplexity;
+    const nestingDepth = func.nestingDepth;
+    const parameterComplexity = Math.min(func.parameterCount / 5, 1); // Normalize to 0-1
+    const sizeComplexity = Math.min(func.size / 50, 1); // Normalize to 0-1
+    
+    // Enhanced complexity calculation using multiple factors
+    const overallComplexity = Math.min(
+      (cyclomaticComplexity * 0.4 + 
+       nestingDepth * 0.3 + 
+       parameterComplexity * 0.15 + 
+       sizeComplexity * 0.15) / 10, // Normalize
+      1
+    );
+    
+    // Determine intensity level based on multiple factors
+    let intensityLevel: 'low' | 'medium' | 'high' | 'extreme';
+    
+    if (cyclomaticComplexity >= 15 || nestingDepth >= 6 || func.size >= 100) {
+      intensityLevel = 'extreme';
+    } else if (cyclomaticComplexity >= 10 || nestingDepth >= 4 || func.size >= 50) {
+      intensityLevel = 'high';
+    } else if (cyclomaticComplexity >= 5 || nestingDepth >= 3 || func.size >= 20) {
+      intensityLevel = 'medium';
+    } else {
+      intensityLevel = 'low';
+    }
+
+    return {
+      lineCount: func.size,
+      overallComplexity,
+      cyclomaticComplexity,
+      nestingDepth,
+      intensityLevel
+    };
+  }
+
+  /**
+   * Check if the document is JavaScript or TypeScript
+   */
+  private isJavaScriptOrTypeScript(document: vscode.TextDocument): boolean {
+    const fileName = document.fileName.toLowerCase();
+    return fileName.endsWith('.js') || 
+           fileName.endsWith('.jsx') || 
+           fileName.endsWith('.ts') || 
+           fileName.endsWith('.tsx') ||
+           fileName.endsWith('.mjs') ||
+           fileName.endsWith('.cjs');
   }
 
   /**
@@ -67,7 +158,7 @@ export class ComplexityAnalyzer {
   /**
    * Calculate complexity metrics for a function
    */
-  private calculateComplexity(text: string, func: CodeFunction): ComplexityMetrics {
+  private calculateBasicComplexity(text: string, func: CodeFunction): ComplexityMetrics {
     const functionText = this.extractFunctionText(text, func);
     
     const lineCount = func.size;

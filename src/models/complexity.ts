@@ -17,6 +17,7 @@ export interface ComplexityMetrics {
  */
 export interface AnalyzedFunction {
   name: string;
+  size: number;
   startLine: number;
   endLine: number;
   complexity: ComplexityMetrics;

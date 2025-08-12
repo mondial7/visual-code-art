@@ -1,11 +1,47 @@
 import * as vscode from 'vscode';
 import { CodeFunction } from '../models/code';
+import { TypeScriptAstParser } from './typeScriptAstParser';
 
 export class CodeParser {
+  private tsParser = new TypeScriptAstParser();
+
   /**
    * Extract functions and their metrics from a text document
+   * Uses enhanced TypeScript AST parser for JS/TS files, falls back to regex for other languages
    */
   public extractFunctions(document: vscode.TextDocument): CodeFunction[] {
+    // Use TypeScript AST parser for JavaScript/TypeScript files
+    if (this.isJavaScriptOrTypeScript(document)) {
+      try {
+        return this.tsParser.extractFunctions(document);
+      } catch (error) {
+        console.warn('[CodeParser] TypeScript AST parsing failed, falling back to regex:', error);
+        // Fall back to regex parsing if AST parsing fails
+        return this.extractFunctionsWithRegex(document);
+      }
+    }
+    
+    // Use regex parsing for other file types
+    return this.extractFunctionsWithRegex(document);
+  }
+
+  /**
+   * Check if the document is JavaScript or TypeScript
+   */
+  private isJavaScriptOrTypeScript(document: vscode.TextDocument): boolean {
+    const fileName = document.fileName.toLowerCase();
+    return fileName.endsWith('.js') || 
+           fileName.endsWith('.jsx') || 
+           fileName.endsWith('.ts') || 
+           fileName.endsWith('.tsx') ||
+           fileName.endsWith('.mjs') ||
+           fileName.endsWith('.cjs');
+  }
+
+  /**
+   * Original regex-based function extraction (fallback and for non-JS/TS files)
+   */
+  private extractFunctionsWithRegex(document: vscode.TextDocument): CodeFunction[] {
     const text = document.getText();
     const functions: CodeFunction[] = [];
     
