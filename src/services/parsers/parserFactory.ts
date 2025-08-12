@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { ILanguageParser, ProgrammingLanguage, LanguageDetector } from './baseParser';
 import { TypeScriptParser } from './typeScriptParser';
 import { PythonParser } from './pythonParser';
+import { JavaParser } from './javaParser';
 import { DefaultParser } from './defaultParser';
 
 /**
@@ -12,6 +13,7 @@ export class ParserFactory {
   private static parsers: ILanguageParser[] = [
     new TypeScriptParser(),
     new PythonParser(),
+    new JavaParser(),
     new DefaultParser() // Always keep default parser last as fallback
   ];
   
