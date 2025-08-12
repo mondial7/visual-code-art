@@ -115,10 +115,83 @@ export class WebviewContentProvider {
           height: 100% !important;
         }
         
+        #settings-panel {
+          position: fixed;
+          top: 10px;
+          right: 10px;
+          background: rgba(0, 0, 0, 0.85);
+          color: white;
+          padding: 12px;
+          border-radius: 8px;
+          backdrop-filter: blur(6px);
+          z-index: 100;
+          max-width: 200px;
+          font-size: calc(var(--vscode-font-size) * 0.85);
+        }
+        
+        .settings-item {
+          margin-bottom: 8px;
+        }
+        
+        .settings-label {
+          display: block;
+          margin-bottom: 4px;
+          font-weight: 500;
+          opacity: 0.8;
+        }
+        
+        .settings-select {
+          width: 100%;
+          padding: 4px 8px;
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 4px;
+          color: white;
+          font-size: inherit;
+        }
+        
+        .settings-select option {
+          background: #333;
+          color: white;
+        }
+        
+        .settings-checkbox {
+          margin-right: 6px;
+        }
+        
+        .settings-range {
+          width: 100%;
+          margin-top: 4px;
+        }
+        
       </style>
     </head>
     <body>
       <div id="canvas-container"></div>
+      
+      <div id="settings-panel">
+        <div class="settings-item">
+          <label class="settings-label" for="theme-select">Theme:</label>
+          <select id="theme-select" class="settings-select">
+            <option value="auto">Auto (Time-based)</option>
+            <option value="day">Day (Light)</option>
+            <option value="night">Night (Dark)</option>
+          </select>
+        </div>
+        
+        <div class="settings-item">
+          <label class="settings-label">
+            <input type="checkbox" id="animation-checkbox" class="settings-checkbox">
+            Animation
+          </label>
+        </div>
+        
+        <div class="settings-item">
+          <label class="settings-label" for="intensity-range">Intensity:</label>
+          <input type="range" id="intensity-range" class="settings-range" min="0.1" max="2.0" step="0.1" value="1.0">
+          <span id="intensity-value">1.0</span>
+        </div>
+      </div>
       
       <div id="stats-panel">
         <div class="stats-row">

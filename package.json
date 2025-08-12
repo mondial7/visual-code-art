@@ -37,6 +37,29 @@
           "contextualTitle": "Visual Code Art"
         }
       ]
+    },
+    "configuration": {
+      "title": "Visual Code Art",
+      "properties": {
+        "visualCodeArt.themeMode": {
+          "type": "string",
+          "enum": ["auto", "day", "night"],
+          "default": "auto",
+          "description": "Theme mode for the visualization: auto (time-based), day (light colors), or night (dark colors)"
+        },
+        "visualCodeArt.animationEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable or disable animation in the visualization"
+        },
+        "visualCodeArt.particleIntensity": {
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.1,
+          "maximum": 2.0,
+          "description": "Particle intensity multiplier (0.1 to 2.0)"
+        }
+      }
     }
   },
   "scripts": {

@@ -51,10 +51,13 @@ interface EnhancedFunctionData {
   complexity: ComplexityMetrics;
 }
 
+type ThemeMode = 'auto' | 'day' | 'night';
+
 interface VisualizationSettings {
   colorTheme: 'rainbow';
   animationEnabled: boolean;
   particleIntensity: number; // 0-1 multiplier for particle effects
+  themeMode: ThemeMode;
 }
 
 type AutoVisualizationStyle = 'particles' | 'chaos' | 'flow';
@@ -145,6 +148,7 @@ class ParticleSystem {
   private createParticle(): Particle {
     const angle = random(0, Math.PI * 2);
     const distance = random(0, 30);
+    const themeColors = getThemeColors();
     
     return {
       id: `particle_${Date.now()}_${Math.random()}`,
@@ -160,8 +164,8 @@ class ParticleSystem {
       size: this.config.size * random(0.8, 1.4),
       color: {
         hue: random(0, 360),
-        saturation: 85 + this.config.colorIntensity * 15,
-        brightness: 95 + this.config.colorIntensity * 5,
+        saturation: themeColors.particleBase.saturation + this.config.colorIntensity * 15,
+        brightness: themeColors.particleBase.brightness + this.config.colorIntensity * 5,
         alpha: 0.9
       },
       life: this.config.particleLifetime,
@@ -326,12 +330,47 @@ let filename: string = '';
 let settings: VisualizationSettings = {
   colorTheme: 'rainbow',
   animationEnabled: true,
-  particleIntensity: 1.0
+  particleIntensity: 1.0,
+  themeMode: 'auto'
 };
 
 let currentStyle: AutoVisualizationStyle = 'particles';
 let functionVisualizations: FunctionVisualization[] = [];
 let lastUpdateTime: number = 0;
+
+// Theme color palettes
+interface ThemeColors {
+  background: { hue: number; saturation: number; brightness: number };
+  text: { hue: number; saturation: number; brightness: number };
+  particleBase: { saturation: number; brightness: number };
+}
+
+const themeColorPalettes: Record<'day' | 'night', ThemeColors> = {
+  day: {
+    background: { hue: 200, saturation: 15, brightness: 95 }, // Light blue-gray
+    text: { hue: 0, saturation: 0, brightness: 20 }, // Dark gray
+    particleBase: { saturation: 70, brightness: 80 } // Vibrant but not too intense
+  },
+  night: {
+    background: { hue: 240, saturation: 8, brightness: 8 }, // Very dark blue-gray
+    text: { hue: 0, saturation: 0, brightness: 85 }, // Light gray
+    particleBase: { saturation: 85, brightness: 95 } // Very vibrant and bright
+  }
+};
+
+// ===== THEME UTILITIES =====
+
+function getCurrentTheme(): 'day' | 'night' {
+  if (settings.themeMode === 'auto') {
+    const currentHour = new Date().getHours();
+    return (currentHour >= 6 && currentHour < 18) ? 'day' : 'night';
+  }
+  return settings.themeMode as 'day' | 'night';
+}
+
+function getThemeColors(): ThemeColors {
+  return themeColorPalettes[getCurrentTheme()];
+}
 
 // ===== P5.JS SKETCH FUNCTIONS =====
 
@@ -343,8 +382,13 @@ function setup(): void {
 }
 
 function draw(): void {
-  // Dark background for better visibility
-  background(0, 0, 8); // Very dark gray, almost black
+  // Theme-aware background
+  const themeColors = getThemeColors();
+  background(
+    themeColors.background.hue,
+    themeColors.background.saturation,
+    themeColors.background.brightness
+  );
   
   if (settings.animationEnabled) {
     updateParticleVisualizations();
@@ -470,11 +514,17 @@ function updateParticleVisualizations(): void {
 }
 
 function renderParticleVisualizations(): void {
+  const themeColors = getThemeColors();
+  
   functionVisualizations.forEach(viz => {
     viz.particles.render();
     
-    // Draw function label
-    fill(color(0, 0, 80));
+    // Draw function label with theme-aware text color
+    fill(color(
+      themeColors.text.hue,
+      themeColors.text.saturation,
+      themeColors.text.brightness
+    ));
     noStroke();
     textAlign('CENTER', 'CENTER');
     textSize(12);
@@ -576,6 +626,9 @@ function updateStatisticsPanel(data: EnhancedFunctionData[], filename: string): 
 function handleSettingsUpdate(newSettings: VisualizationSettings): void {
   settings = newSettings;
   
+  // Update the settings UI to reflect the new settings
+  updateSettingsUI();
+  
   // Update particle configs if intensity changed
   functionVisualizations.forEach(viz => {
     const newConfig = generateParticleConfig(viz.func.complexity);
@@ -583,6 +636,77 @@ function handleSettingsUpdate(newSettings: VisualizationSettings): void {
   });
   
   redraw();
+}
+
+// ===== SETTINGS UI HANDLING =====
+
+function initializeSettingsUI(): void {
+  const themeSelect = document.getElementById('theme-select') as HTMLSelectElement;
+  const animationCheckbox = document.getElementById('animation-checkbox') as HTMLInputElement;
+  const intensityRange = document.getElementById('intensity-range') as HTMLInputElement;
+  const intensityValue = document.getElementById('intensity-value') as HTMLSpanElement;
+
+  if (themeSelect) {
+    themeSelect.addEventListener('change', () => {
+      settings.themeMode = themeSelect.value as 'auto' | 'day' | 'night';
+      
+      // Send settings update to extension
+      vscode.postMessage({
+        type: 'settingsChanged',
+        settings: { themeMode: settings.themeMode }
+      });
+      
+      // Trigger visual update
+      redraw();
+    });
+  }
+
+  if (animationCheckbox) {
+    animationCheckbox.addEventListener('change', () => {
+      settings.animationEnabled = animationCheckbox.checked;
+      
+      vscode.postMessage({
+        type: 'settingsChanged',
+        settings: { animationEnabled: settings.animationEnabled }
+      });
+    });
+  }
+
+  if (intensityRange && intensityValue) {
+    intensityRange.addEventListener('input', () => {
+      const value = parseFloat(intensityRange.value);
+      settings.particleIntensity = value;
+      intensityValue.textContent = value.toFixed(1);
+      
+      vscode.postMessage({
+        type: 'settingsChanged',
+        settings: { particleIntensity: settings.particleIntensity }
+      });
+      
+      // Update visualizations with new intensity
+      handleSettingsUpdate(settings);
+    });
+  }
+}
+
+function updateSettingsUI(): void {
+  const themeSelect = document.getElementById('theme-select') as HTMLSelectElement;
+  const animationCheckbox = document.getElementById('animation-checkbox') as HTMLInputElement;
+  const intensityRange = document.getElementById('intensity-range') as HTMLInputElement;
+  const intensityValue = document.getElementById('intensity-value') as HTMLSpanElement;
+
+  if (themeSelect) {
+    themeSelect.value = settings.themeMode;
+  }
+
+  if (animationCheckbox) {
+    animationCheckbox.checked = settings.animationEnabled;
+  }
+
+  if (intensityRange && intensityValue) {
+    intensityRange.value = settings.particleIntensity.toString();
+    intensityValue.textContent = settings.particleIntensity.toFixed(1);
+  }
 }
 
 // Listen for messages from the extension
@@ -599,6 +723,11 @@ window.addEventListener('message', (event: MessageEvent) => {
     default:
       console.warn('Unknown message type:', message);
   }
+});
+
+// Initialize settings UI when DOM is ready
+window.addEventListener('DOMContentLoaded', () => {
+  initializeSettingsUI();
 });
 
 // ===== P5.JS GLOBAL EXPORTS =====

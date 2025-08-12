@@ -32,6 +32,7 @@
     createParticle() {
       const angle = random(0, Math.PI * 2);
       const distance = random(0, 30);
+      const themeColors = getThemeColors();
       return {
         id: `particle_${Date.now()}_${Math.random()}`,
         position: {
@@ -46,8 +47,8 @@
         size: this.config.size * random(0.8, 1.4),
         color: {
           hue: random(0, 360),
-          saturation: 85 + this.config.colorIntensity * 15,
-          brightness: 95 + this.config.colorIntensity * 5,
+          saturation: themeColors.particleBase.saturation + this.config.colorIntensity * 15,
+          brightness: themeColors.particleBase.brightness + this.config.colorIntensity * 5,
           alpha: 0.9
         },
         life: this.config.particleLifetime,
@@ -171,11 +172,40 @@
   var settings = {
     colorTheme: "rainbow",
     animationEnabled: true,
-    particleIntensity: 1
+    particleIntensity: 1,
+    themeMode: "auto"
   };
   var currentStyle = "particles";
   var functionVisualizations = [];
   var lastUpdateTime = 0;
+  var themeColorPalettes = {
+    day: {
+      background: { hue: 200, saturation: 15, brightness: 95 },
+      // Light blue-gray
+      text: { hue: 0, saturation: 0, brightness: 20 },
+      // Dark gray
+      particleBase: { saturation: 70, brightness: 80 }
+      // Vibrant but not too intense
+    },
+    night: {
+      background: { hue: 240, saturation: 8, brightness: 8 },
+      // Very dark blue-gray
+      text: { hue: 0, saturation: 0, brightness: 85 },
+      // Light gray
+      particleBase: { saturation: 85, brightness: 95 }
+      // Very vibrant and bright
+    }
+  };
+  function getCurrentTheme() {
+    if (settings.themeMode === "auto") {
+      const currentHour = (/* @__PURE__ */ new Date()).getHours();
+      return currentHour >= 6 && currentHour < 18 ? "day" : "night";
+    }
+    return settings.themeMode;
+  }
+  function getThemeColors() {
+    return themeColorPalettes[getCurrentTheme()];
+  }
   function setup() {
     createCanvas(window.innerWidth, window.innerHeight);
     windowResized();
@@ -183,7 +213,12 @@
     lastUpdateTime = millis();
   }
   function draw() {
-    background(0, 0, 8);
+    const themeColors = getThemeColors();
+    background(
+      themeColors.background.hue,
+      themeColors.background.saturation,
+      themeColors.background.brightness
+    );
     if (settings.animationEnabled) {
       updateParticleVisualizations();
       renderParticleVisualizations();
@@ -277,9 +312,14 @@
     });
   }
   function renderParticleVisualizations() {
+    const themeColors = getThemeColors();
     functionVisualizations.forEach((viz) => {
       viz.particles.render();
-      fill(color(0, 0, 80));
+      fill(color(
+        themeColors.text.hue,
+        themeColors.text.saturation,
+        themeColors.text.brightness
+      ));
       noStroke();
       textAlign("CENTER", "CENTER");
       textSize(12);
@@ -353,11 +393,65 @@
   }
   function handleSettingsUpdate(newSettings) {
     settings = newSettings;
+    updateSettingsUI();
     functionVisualizations.forEach((viz) => {
       const newConfig = generateParticleConfig(viz.func.complexity);
       viz.particles.updateConfig(newConfig);
     });
     redraw();
+  }
+  function initializeSettingsUI() {
+    const themeSelect = document.getElementById("theme-select");
+    const animationCheckbox = document.getElementById("animation-checkbox");
+    const intensityRange = document.getElementById("intensity-range");
+    const intensityValue = document.getElementById("intensity-value");
+    if (themeSelect) {
+      themeSelect.addEventListener("change", () => {
+        settings.themeMode = themeSelect.value;
+        vscode.postMessage({
+          type: "settingsChanged",
+          settings: { themeMode: settings.themeMode }
+        });
+        redraw();
+      });
+    }
+    if (animationCheckbox) {
+      animationCheckbox.addEventListener("change", () => {
+        settings.animationEnabled = animationCheckbox.checked;
+        vscode.postMessage({
+          type: "settingsChanged",
+          settings: { animationEnabled: settings.animationEnabled }
+        });
+      });
+    }
+    if (intensityRange && intensityValue) {
+      intensityRange.addEventListener("input", () => {
+        const value = parseFloat(intensityRange.value);
+        settings.particleIntensity = value;
+        intensityValue.textContent = value.toFixed(1);
+        vscode.postMessage({
+          type: "settingsChanged",
+          settings: { particleIntensity: settings.particleIntensity }
+        });
+        handleSettingsUpdate(settings);
+      });
+    }
+  }
+  function updateSettingsUI() {
+    const themeSelect = document.getElementById("theme-select");
+    const animationCheckbox = document.getElementById("animation-checkbox");
+    const intensityRange = document.getElementById("intensity-range");
+    const intensityValue = document.getElementById("intensity-value");
+    if (themeSelect) {
+      themeSelect.value = settings.themeMode;
+    }
+    if (animationCheckbox) {
+      animationCheckbox.checked = settings.animationEnabled;
+    }
+    if (intensityRange && intensityValue) {
+      intensityRange.value = settings.particleIntensity.toString();
+      intensityValue.textContent = settings.particleIntensity.toFixed(1);
+    }
   }
   window.addEventListener("message", (event) => {
     const message = event.data;
@@ -371,6 +465,9 @@
       default:
         console.warn("Unknown message type:", message);
     }
+  });
+  window.addEventListener("DOMContentLoaded", () => {
+    initializeSettingsUI();
   });
   window.setup = setup;
   window.draw = draw;
