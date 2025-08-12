@@ -3,6 +3,7 @@ import { ILanguageParser, ProgrammingLanguage, LanguageDetector } from './basePa
 import { TypeScriptParser } from './typeScriptParser';
 import { PythonParser } from './pythonParser';
 import { JavaParser } from './javaParser';
+import { RubyParser } from './rubyParser';
 import { DefaultParser } from './defaultParser';
 
 /**
@@ -14,6 +15,7 @@ export class ParserFactory {
     new TypeScriptParser(),
     new PythonParser(),
     new JavaParser(),
+    new RubyParser(),
     new DefaultParser() // Always keep default parser last as fallback
   ];
   
