@@ -4,6 +4,9 @@ import { TypeScriptParser } from './typeScriptParser';
 import { PythonParser } from './pythonParser';
 import { JavaParser } from './javaParser';
 import { RubyParser } from './rubyParser';
+import { PhpParser } from './phpParser';
+import { HtmlParser } from './htmlParser';
+import { CssParser } from './cssParser';
 import { DefaultParser } from './defaultParser';
 
 /**
@@ -12,11 +15,14 @@ import { DefaultParser } from './defaultParser';
  */
 export class ParserFactory {
   private static parsers: ILanguageParser[] = [
-    new TypeScriptParser(),
-    new PythonParser(),
-    new JavaParser(),
-    new RubyParser(),
-    new DefaultParser() // Always keep default parser last as fallback
+    new TypeScriptParser(),     // JavaScript, TypeScript, JSX, TSX
+    new PythonParser(),         // Python
+    new JavaParser(),           // Java
+    new RubyParser(),           // Ruby, Rails
+    new PhpParser(),            // PHP
+    new HtmlParser(),           // HTML, Vue, Svelte templates
+    new CssParser(),            // CSS, SCSS, Sass, Less
+    new DefaultParser()         // Always keep default parser last as fallback
   ];
   
   /**

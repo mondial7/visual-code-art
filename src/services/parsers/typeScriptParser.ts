@@ -34,6 +34,19 @@ export class TypeScriptParser extends BaseLanguageParser {
     // Higher confidence for TypeScript files
     if (extension === '.ts' || extension === '.tsx') return 0.95;
     
+    // Check for React/JSX features
+    const jsxPatterns = [
+      /<\w+[^>]*>/,                              // JSX elements
+      /return\s*\(/,                             // Common React pattern
+      /React\./,                                 // React usage
+      /import.*from\s+['"]react['"]/,            // React imports
+      /useState|useEffect|useContext/,           // React hooks
+      /props\./,                                 // Props usage
+      /className=/,                              // JSX className
+      /onClick=/,                                // Event handlers
+      /\{.*\}/                                   // JSX expressions
+    ];
+    
     // Check for TypeScript-specific features in JS files
     const tsPatterns = [
       /:\s*\w+(\[\])?(\s*\|\s*\w+)*\s*[=;,)]/,  // Type annotations
@@ -46,13 +59,23 @@ export class TypeScriptParser extends BaseLanguageParser {
       /implements\s+\w+/                         // Interface implementation
     ];
     
+    let jsxFeatures = 0;
     let tsFeatures = 0;
+    
+    for (const pattern of jsxPatterns) {
+      if (pattern.test(text)) jsxFeatures++;
+    }
+    
     for (const pattern of tsPatterns) {
       if (pattern.test(text)) tsFeatures++;
     }
     
-    // Base confidence for JS, higher with TS features
-    return Math.min(0.9, 0.7 + (tsFeatures * 0.05));
+    // Enhanced confidence for JSX files
+    if (extension === '.jsx' && jsxFeatures > 3) return 0.9;
+    if (extension === '.tsx' && (jsxFeatures > 3 || tsFeatures > 3)) return 0.98;
+    
+    // Base confidence for JS, higher with TS/JSX features
+    return Math.min(0.9, 0.7 + (tsFeatures * 0.05) + (jsxFeatures * 0.03));
   }
   
   extractEnhancedFunctions(document: vscode.TextDocument): EnhancedFunctionMetrics[] {
@@ -212,6 +235,28 @@ export class TypeScriptParser extends BaseLanguageParser {
       // Case clauses
       if (ts.isCaseClause(child)) {
         complexity++;
+      }
+      
+      // JSX-specific complexity
+      if (ts.isJsxElement(child) || ts.isJsxSelfClosingElement(child)) {
+        // JSX conditional rendering adds complexity
+        ts.forEachChild(child, (jsxChild) => {
+          if (ts.isJsxExpression(jsxChild) && jsxChild.expression) {
+            // Check for conditional expressions in JSX
+            if (ts.isConditionalExpression(jsxChild.expression) ||
+                ts.isBinaryExpression(jsxChild.expression)) {
+              complexity++;
+            }
+          }
+        });
+      }
+      
+      // React Hooks add complexity
+      if (ts.isCallExpression(child) && ts.isIdentifier(child.expression)) {
+        const hookName = child.expression.text;
+        if (hookName.startsWith('use') && hookName.length > 3) {
+          complexity++; // useState, useEffect, etc.
+        }
       }
       
       ts.forEachChild(child, visit);
