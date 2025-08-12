@@ -1,30 +1,33 @@
 import * as vscode from 'vscode';
 import { CodeFunction } from '../models/code';
 import { ComplexityMetrics, AnalyzedFunction, VisualizationParams } from '../models/complexity';
-import { TypeScriptAstParser, EnhancedFunctionMetrics } from './typeScriptAstParser';
+import { ParserFactory } from './parsers/parserFactory';
+import { EnhancedFunctionMetrics } from './parsers/baseParser';
 
 /**
  * Analyzes code complexity and generates visualization parameters
+ * Uses the new multi-language parser architecture
  */
 export class ComplexityAnalyzer {
-  private tsParser = new TypeScriptAstParser();
-  
   /**
    * Analyze functions and calculate complexity metrics
-   * Uses enhanced TypeScript AST analysis for JS/TS files
+   * Uses enhanced analysis from appropriate language parser
    */
   public analyzeFunctions(document: vscode.TextDocument, functions: CodeFunction[]): AnalyzedFunction[] {
-    // Try to get enhanced metrics for JS/TS files
-    if (this.isJavaScriptOrTypeScript(document)) {
-      try {
-        const enhancedFunctions = this.tsParser.extractEnhancedFunctions(document);
+    try {
+      // Get enhanced metrics using the best parser for this document
+      const parser = ParserFactory.getBestParser(document);
+      const enhancedFunctions = parser.extractEnhancedFunctions(document);
+      
+      if (enhancedFunctions.length > 0) {
+        console.log(`[ComplexityAnalyzer] Using enhanced analysis from ${parser.getSupportedLanguage()} parser`);
         return this.analyzeEnhancedFunctions(enhancedFunctions);
-      } catch (error) {
-        console.warn('[ComplexityAnalyzer] Enhanced analysis failed, falling back to basic analysis:', error);
       }
+    } catch (error) {
+      console.warn('[ComplexityAnalyzer] Enhanced analysis failed, falling back to basic analysis:', error);
     }
     
-    // Fall back to basic analysis for other languages or if enhanced analysis fails
+    // Fall back to basic analysis if enhanced analysis fails or returns no results
     return this.analyzeBasicFunctions(document, functions);
   }
 
@@ -98,19 +101,6 @@ export class ComplexityAnalyzer {
       nestingDepth,
       intensityLevel
     };
-  }
-
-  /**
-   * Check if the document is JavaScript or TypeScript
-   */
-  private isJavaScriptOrTypeScript(document: vscode.TextDocument): boolean {
-    const fileName = document.fileName.toLowerCase();
-    return fileName.endsWith('.js') || 
-           fileName.endsWith('.jsx') || 
-           fileName.endsWith('.ts') || 
-           fileName.endsWith('.tsx') ||
-           fileName.endsWith('.mjs') ||
-           fileName.endsWith('.cjs');
   }
 
   /**

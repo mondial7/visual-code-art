@@ -1,45 +1,72 @@
 import * as vscode from 'vscode';
 import { CodeFunction } from '../models/code';
-import { TypeScriptAstParser } from './typeScriptAstParser';
+import { ParserFactory } from './parsers/parserFactory';
+import { LanguageDetector, ProgrammingLanguage } from './parsers/baseParser';
 
+/**
+ * Main code parser that delegates to appropriate language-specific parsers
+ * Uses the new multi-language parser architecture
+ */
 export class CodeParser {
-  private tsParser = new TypeScriptAstParser();
-
   /**
    * Extract functions and their metrics from a text document
-   * Uses enhanced TypeScript AST parser for JS/TS files, falls back to regex for other languages
+   * Automatically selects the best parser based on language detection
    */
   public extractFunctions(document: vscode.TextDocument): CodeFunction[] {
-    // Use TypeScript AST parser for JavaScript/TypeScript files
-    if (this.isJavaScriptOrTypeScript(document)) {
-      try {
-        return this.tsParser.extractFunctions(document);
-      } catch (error) {
-        console.warn('[CodeParser] TypeScript AST parsing failed, falling back to regex:', error);
-        // Fall back to regex parsing if AST parsing fails
-        return this.extractFunctionsWithRegex(document);
-      }
+    try {
+      // Get the best parser for this document
+      const parser = ParserFactory.getBestParser(document);
+      
+      // Extract functions using the selected parser
+      const functions = parser.extractFunctions(document);
+      
+      // Log parsing results for debugging
+      const stats = ParserFactory.getParserStats(document);
+      console.log(`[CodeParser] Parsed ${document.fileName}:`, {
+        language: LanguageDetector.getLanguageName(stats.detectedLanguage),
+        parser: stats.selectedParser,
+        functions: functions.length,
+        confidence: stats.confidence.toFixed(2)
+      });
+      
+      return functions;
+    } catch (error) {
+      console.error('[CodeParser] Failed to parse document:', error);
+      // Return empty array on error
+      return [];
     }
-    
-    // Use regex parsing for other file types
-    return this.extractFunctionsWithRegex(document);
   }
 
   /**
-   * Check if the document is JavaScript or TypeScript
+   * Get enhanced function metrics (for advanced analysis)
    */
-  private isJavaScriptOrTypeScript(document: vscode.TextDocument): boolean {
-    const fileName = document.fileName.toLowerCase();
-    return fileName.endsWith('.js') || 
-           fileName.endsWith('.jsx') || 
-           fileName.endsWith('.ts') || 
-           fileName.endsWith('.tsx') ||
-           fileName.endsWith('.mjs') ||
-           fileName.endsWith('.cjs');
+  public extractEnhancedFunctions(document: vscode.TextDocument) {
+    try {
+      const parser = ParserFactory.getBestParser(document);
+      return parser.extractEnhancedFunctions(document);
+    } catch (error) {
+      console.error('[CodeParser] Failed to extract enhanced functions:', error);
+      return [];
+    }
   }
 
   /**
-   * Original regex-based function extraction (fallback and for non-JS/TS files)
+   * Get parser information for diagnostics
+   */
+  public getParserInfo(document: vscode.TextDocument) {
+    return ParserFactory.getParserStats(document);
+  }
+
+  /**
+   * Get detected language for a document
+   */
+  public detectLanguage(document: vscode.TextDocument): ProgrammingLanguage {
+    return LanguageDetector.detectLanguage(document);
+  }
+
+  /**
+   * Legacy regex-based function extraction (kept for backward compatibility)
+   * @deprecated Use extractFunctions() which automatically selects the best parser
    */
   private extractFunctionsWithRegex(document: vscode.TextDocument): CodeFunction[] {
     const text = document.getText();
