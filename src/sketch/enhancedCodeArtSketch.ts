@@ -160,9 +160,9 @@ class ParticleSystem {
       size: this.config.size * random(0.8, 1.4),
       color: {
         hue: random(0, 360),
-        saturation: 70 + this.config.colorIntensity * 30,
-        brightness: 85 + this.config.colorIntensity * 15,
-        alpha: 1
+        saturation: 85 + this.config.colorIntensity * 15,
+        brightness: 95 + this.config.colorIntensity * 5,
+        alpha: 0.9
       },
       life: this.config.particleLifetime,
       maxLife: this.config.particleLifetime,
@@ -241,17 +241,17 @@ class ParticleSystem {
     this.particles.forEach(particle => {
       if (particle.trail.length < 2) return;
       
-      strokeWeight(1);
+      strokeWeight(2.5);
       
       for (let i = 1; i < particle.trail.length; i++) {
         const segment = particle.trail[i];
         const prevSegment = particle.trail[i - 1];
-        const alpha = (i / particle.trail.length) * particle.color.alpha * 0.6;
+        const alpha = (i / particle.trail.length) * particle.color.alpha * 0.8;
         
         stroke(color(
           particle.color.hue,
-          particle.color.saturation * 0.8,
-          particle.color.brightness * 0.8,
+          particle.color.saturation * 0.9,
+          particle.color.brightness * 0.9,
           alpha * 255
         ));
         
@@ -278,7 +278,7 @@ class ParticleSystem {
         Math.max(20, particleColor.brightness - 30),
         particleColor.alpha * 0.9 * 255
       ));
-      strokeWeight(this.config.chaos > 0.3 ? 1.5 + this.config.chaos * 2 : 1.2);
+      strokeWeight(this.config.chaos > 0.3 ? 3 + this.config.chaos * 4 : 2.5);
       
       if (this.config.chaos > 0.7) {
         this.drawAngularShape(position, size, this.config.chaos);
@@ -431,24 +431,24 @@ function generateParticleConfig(complexity: ComplexityMetrics): ParticleSystemCo
   
   switch (currentStyle) {
     case 'chaos':
-      styleMultipliers = { chaos: 3, particles: 40, speed: 5, trails: 25, lifetime: 2000 };
+      styleMultipliers = { chaos: 3, particles: 60, speed: 5, trails: 25, lifetime: 2000 };
       break;
     case 'flow':
-      styleMultipliers = { chaos: 0.3, particles: 15, speed: 2, trails: 30, lifetime: 4000 };
+      styleMultipliers = { chaos: 0.3, particles: 35, speed: 2, trails: 30, lifetime: 4000 };
       break;
     case 'particles':
     default:
-      styleMultipliers = { chaos: 1, particles: 25, speed: 3, trails: 15, lifetime: 3000 };
+      styleMultipliers = { chaos: 1, particles: 45, speed: 3, trails: 15, lifetime: 3000 };
       break;
   }
   
   return {
-    maxParticles: Math.floor(5 + intensity * styleMultipliers.particles * settings.particleIntensity),
-    emissionRate: 2 + intensity * 8,
+    maxParticles: Math.floor(15 + intensity * styleMultipliers.particles * settings.particleIntensity * 2),
+    emissionRate: 4 + intensity * 12,
     particleLifetime: 1000 + intensity * styleMultipliers.lifetime,
     chaos: intensity * styleMultipliers.chaos,
     speed: 1 + intensity * styleMultipliers.speed,
-    size: 20 + intensity * 40,
+    size: 60 + intensity * 120,
     colorIntensity: 0.6 + intensity * 0.4,
     trailLength: Math.floor(intensity * styleMultipliers.trails)
   };
