@@ -5,18 +5,20 @@ import { CodeFunction } from '../../models/code';
  * Supported programming languages
  */
 export enum ProgrammingLanguage {
-  JAVASCRIPT = 'javascript',
-  TYPESCRIPT = 'typescript',
-  PYTHON = 'python',
-  JAVA = 'java',
-  CSHARP = 'csharp',
-  GO = 'go',
-  RUST = 'rust',
-  CPP = 'cpp',
-  C = 'c',
-  PHP = 'php',
-  RUBY = 'ruby',
-  UNKNOWN = 'unknown'
+  JAVASCRIPT = 'JavaScript',
+  TYPESCRIPT = 'TypeScript',
+  PYTHON = 'Python',
+  JAVA = 'Java',
+  CSHARP = 'C#',
+  GO = 'Go',
+  RUST = 'Rust',
+  CPP = 'C++',
+  C = 'C',
+  PHP = 'PHP',
+  RUBY = 'Ruby',
+  HTML = 'HTML',
+  CSS = 'CSS',
+  UNKNOWN = 'Unknown'
 }
 
 /**
@@ -263,6 +265,8 @@ export class LanguageDetector {
       [ProgrammingLanguage.C]: 'C',
       [ProgrammingLanguage.PHP]: 'PHP',
       [ProgrammingLanguage.RUBY]: 'Ruby',
+      [ProgrammingLanguage.HTML]: 'HTML',
+      [ProgrammingLanguage.CSS]: 'CSS',
       [ProgrammingLanguage.UNKNOWN]: 'Unknown'
     };
     

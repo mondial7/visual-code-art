@@ -241,4 +241,110 @@ export class ComplexityAnalyzer {
     
     return maxDepth;
   }
+
+  /**
+   * Analyze complexity of a document and return distribution statistics
+   */
+  public analyzeComplexity(document: vscode.TextDocument): {
+    totalFunctions: number;
+    averageComplexity: number;
+    maxComplexity: number;
+    distribution: {
+      low: number;
+      medium: number;
+      high: number;
+      extreme: number;
+    };
+  } {
+    try {
+      const parser = ParserFactory.getBestParser(document);
+      const enhancedFunctions = parser.extractEnhancedFunctions(document);
+      
+      if (enhancedFunctions.length === 0) {
+        return {
+          totalFunctions: 0,
+          averageComplexity: 0,
+          maxComplexity: 0,
+          distribution: { low: 0, medium: 0, high: 0, extreme: 0 }
+        };
+      }
+
+      const complexities = enhancedFunctions.map(f => f.cyclomaticComplexity);
+      const totalFunctions = enhancedFunctions.length;
+      const averageComplexity = complexities.reduce((sum, c) => sum + c, 0) / totalFunctions;
+      const maxComplexity = Math.max(...complexities);
+
+      // Count distribution
+      const distribution = {
+        low: 0,
+        medium: 0,
+        high: 0,
+        extreme: 0
+      };
+
+      enhancedFunctions.forEach(func => {
+        const level = this.getComplexityLevel(func.cyclomaticComplexity);
+        distribution[level]++;
+      });
+
+      return {
+        totalFunctions,
+        averageComplexity,
+        maxComplexity,
+        distribution
+      };
+    } catch (error) {
+      console.warn('[ComplexityAnalyzer] Failed to analyze complexity:', error);
+      return {
+        totalFunctions: 0,
+        averageComplexity: 0,
+        maxComplexity: 0,
+        distribution: { low: 0, medium: 0, high: 0, extreme: 0 }
+      };
+    }
+  }
+
+  /**
+   * Get complexity level for a given cyclomatic complexity value
+   */
+  public getComplexityLevel(complexity: number): 'low' | 'medium' | 'high' | 'extreme' {
+    if (complexity <= 4) return 'low';
+    if (complexity <= 10) return 'medium';
+    if (complexity <= 20) return 'high';
+    return 'extreme';
+  }
+
+  /**
+   * Get overall complexity level for a document based on distribution
+   */
+  public getOverallComplexityLevel(analysis: {
+    totalFunctions: number;
+    averageComplexity: number;
+    maxComplexity: number;
+    distribution: {
+      low: number;
+      medium: number;
+      high: number;
+      extreme: number;
+    };
+  }): 'low' | 'medium' | 'high' | 'extreme' {
+    if (analysis.totalFunctions === 0) return 'low';
+
+    const { distribution, totalFunctions, averageComplexity } = analysis;
+    
+    // If more than 20% are extreme complexity
+    if (distribution.extreme / totalFunctions > 0.2) return 'extreme';
+    
+    // If more than 30% are high complexity or above
+    if ((distribution.high + distribution.extreme) / totalFunctions > 0.3) return 'high';
+    
+    // If average complexity is high
+    if (averageComplexity > 8) return 'high';
+    if (averageComplexity > 5) return 'medium';
+    
+    // If majority are medium or above
+    if ((distribution.medium + distribution.high + distribution.extreme) / totalFunctions > 0.6) return 'medium';
+    
+    return 'low';
+  }
 }
